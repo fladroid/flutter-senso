@@ -5,12 +5,12 @@ import '../models/app_settings.dart';
 import '../services/app_theme.dart';
 import '../services/sensor_service.dart';
 import '../services/ntfy_service.dart';
+import '../services/translation_service.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
   const HomeScreen({super.key, required this.settings});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -18,12 +18,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late SensorService _sensor;
   late NtfyService   _ntfy;
+  final _tr = TranslationService();
+  final _theme = AppTheme();
 
   final List<SensorEvent> _events = [];
   StreamSubscription? _stateSub;
   StreamSubscription? _eventSub;
   StreamSubscription? _readingSub;
-
   bool _dialogShown = false;
 
   @override
@@ -31,290 +32,322 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _sensor = SensorService(settings: widget.settings);
     _ntfy   = NtfyService(settings: widget.settings);
-
     _sensor.onTrigger = _showTriggerDialog;
-
-    _stateSub = _sensor.stateStream.listen((_) => setState(() {}));
-    _eventSub = _sensor.eventStream.listen((e) {
-      setState(() {
-        _events.insert(0, e);
-        if (_events.length > 50) _events.removeLast();
-      });
-    });
+    _stateSub  = _sensor.stateStream.listen((_) => setState(() {}));
+    _eventSub  = _sensor.eventStream.listen((e) => setState(() {
+      _events.insert(0, e);
+      if (_events.length > 50) _events.removeLast();
+    }));
     _readingSub = _sensor.readingStream.listen((_) => setState(() {}));
   }
 
   @override
   void dispose() {
-    _stateSub?.cancel();
-    _eventSub?.cancel();
-    _readingSub?.cancel();
+    _stateSub?.cancel(); _eventSub?.cancel(); _readingSub?.cancel();
     _sensor.dispose();
     super.dispose();
   }
 
   void _toggle() {
     if (_sensor.state == SensoState.idle) {
-      _sensor.start();
-      _ntfy.sendStart();
+      _sensor.start(); _ntfy.sendStart();
     } else {
-      _sensor.stop();
-      _ntfy.sendStop();
+      _sensor.stop(); _ntfy.sendStop();
     }
   }
 
   void _showTriggerDialog() {
     if (_dialogShown) return;
     _dialogShown = true;
-
-    // Countdown timer za dialog
     int remaining = widget.settings.responseWindow;
-    Timer? countdownTimer;
+    Timer? countdown;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          countdownTimer ??= Timer.periodic(const Duration(seconds: 1), (t) {
+        builder: (ctx, setDS) {
+          countdown ??= Timer.periodic(const Duration(seconds: 1), (t) {
             if (remaining <= 1) {
               t.cancel();
-              if (ctx.mounted) Navigator.of(ctx).pop();
+              if (ctx.mounted) Navigator.of(ctx).pop('timeout');
             } else {
-              setDialogState(() => remaining--);
+              setDS(() => remaining--);
             }
           });
-
-          final t = AppTheme();
-          return AlertDialog(
-            backgroundColor: const Color(0xFFFFF3CD),
-            title: Text('⚠️ Senso',
-                style: TextStyle(fontSize: t.headerSize, fontWeight: FontWeight.bold)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Pad detektovan!\nJesi li dobro?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: t.bodySize + 2)),
+          final th = AppTheme();
+          return Dialog(
+            backgroundColor: const Color(0xFFFFFBF0),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(_tr.t('trigger_title'),
+                    style: TextStyle(fontSize: th.headerSize,
+                        fontWeight: FontWeight.bold, color: th.ink)),
                 const SizedBox(height: 16),
-                Text('Alarm za: ${remaining}s',
-                    style: TextStyle(fontSize: t.captionSize, color: t.inkMedium)),
+                Text(_tr.t('trigger_body'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: th.bodySize + 2, color: th.inkMedium)),
+                const SizedBox(height: 20),
+                Text(_tr.t('trigger_alarm_in', params: {'s': '$remaining'}),
+                    style: TextStyle(fontSize: th.captionSize, color: th.inkLight)),
                 const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: remaining / widget.settings.responseWindow,
-                  color: t.accent,
-                  backgroundColor: t.border,
-                ),
-              ],
-            ),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme().accent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: remaining / widget.settings.responseWindow,
+                    minHeight: 6,
+                    color: th.accent,
+                    backgroundColor: th.border,
                   ),
-                  onPressed: () {
-                    countdownTimer?.cancel();
-                    Navigator.of(ctx).pop();
-                    _sensor.confirmOk();
-                    _ntfy.sendOk();
-                    _dialogShown = false;
-                  },
-                  child: Text('DA, U REDU SAM',
-                      style: TextStyle(fontSize: AppTheme().bodySize + 1,
-                          fontWeight: FontWeight.bold)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: th.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      countdown?.cancel();
+                      Navigator.of(ctx).pop('ok');
+                    },
+                    child: Text(_tr.t('trigger_ok'),
+                        style: TextStyle(fontSize: th.bodySize + 1,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ]),
+            ),
           );
         },
       ),
-    ).then((_) {
+    ).then((result) {
       _dialogShown = false;
-      // Ako dialog zatvoren bez pritiska dugmeta → alarm
-      if (_sensor.state == SensoState.trigger) {
-        _sensor.triggerAlarm();
-        _ntfy.sendAlarm();
+      if (result == 'ok') {
+        _sensor.confirmOk(); _ntfy.sendOk();
+      } else {
+        if (_sensor.state == SensoState.trigger) {
+          _sensor.triggerAlarm(); _ntfy.sendAlarm();
+        }
       }
     });
   }
 
-  Color get _stateColor {
-    final t = AppTheme();
+  Color get _bgColor {
     switch (_sensor.state) {
-      case SensoState.monitoring: return t.accent.withAlpha(20);
-      case SensoState.trigger:    return const Color(0xFFFFF3CD);
-      case SensoState.alarm:      return const Color(0xFFFFE0E0);
-      default:                    return t.background;
+      case SensoState.monitoring: return _theme.accent.withAlpha(18);
+      case SensoState.trigger:    return const Color(0xFFFFF8E1);
+      case SensoState.alarm:      return const Color(0xFFFFF0F0);
+      default:                    return _theme.background;
     }
   }
 
   String get _stateLabel {
     switch (_sensor.state) {
-      case SensoState.idle:       return 'IDLE';
-      case SensoState.monitoring: return 'MONITORING';
-      case SensoState.trigger:    return 'TRIGGER ⚠️';
-      case SensoState.alarm:      return 'ALARM 🆘';
+      case SensoState.idle:       return _tr.t('state_idle');
+      case SensoState.monitoring: return _tr.t('state_monitoring');
+      case SensoState.trigger:    return _tr.t('state_trigger');
+      case SensoState.alarm:      return _tr.t('state_alarm');
+    }
+  }
+
+  Color get _stateLabelColor {
+    switch (_sensor.state) {
+      case SensoState.monitoring: return _theme.accent;
+      case SensoState.trigger:    return const Color(0xFF8B6000);
+      case SensoState.alarm:      return _theme.destructive;
+      default:                    return _theme.inkLight;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = AppTheme();
-    final isMonitoring = _sensor.state != SensoState.idle;
+    final isActive = _sensor.state != SensoState.idle;
+    final s = widget.settings;
 
     return Scaffold(
-      backgroundColor: _stateColor,
-      appBar: AppBar(
-        backgroundColor: _stateColor,
-        title: Text('📡  Senso v1.0.0',
-            style: TextStyle(fontSize: t.headerSize, fontWeight: FontWeight.bold,
-                color: t.ink)),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings, color: t.inkMedium),
-            onPressed: () async {
-              await Navigator.push(context,
-                  MaterialPageRoute(builder: (_) =>
-                      SettingsScreen(settings: widget.settings)));
-              setState(() {});
-            },
+      backgroundColor: _bgColor,
+      body: SafeArea(
+        child: Column(children: [
+          _buildTopBar(s),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(children: [
+                const SizedBox(height: 16),
+                _buildStatusCard(isActive),
+                const SizedBox(height: 12),
+                _buildReadings(s),
+                const SizedBox(height: 12),
+                _buildEventLogHeader(),
+                const SizedBox(height: 6),
+                Expanded(child: _buildEventLog()),
+              ]),
+            ),
           ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Status card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              decoration: BoxDecoration(
-                color: t.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: t.border),
-              ),
-              child: Column(
-                children: [
-                  Text(_stateLabel,
-                      style: TextStyle(fontSize: t.headerSize,
-                          fontWeight: FontWeight.bold, color: t.ink)),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isMonitoring
-                            ? t.destructive
-                            : t.accent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: _toggle,
-                      child: Text(isMonitoring ? 'STOP' : 'START',
-                          style: TextStyle(fontSize: t.bodySize + 2,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Live readings
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: t.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: t.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _reading('Akcelerometar',
-                      '${_sensor.accelMagnitude.toStringAsFixed(2)} m/s²',
-                      widget.settings.accelEnabled && widget.settings.accelAvailable),
-                  _reading('Gyroscope',
-                      '${_sensor.gyroMagnitude.toStringAsFixed(2)} rad/s',
-                      widget.settings.gyroEnabled && widget.settings.gyroAvailable),
-                  _reading('Step detector',
-                      _sensor.stepActive ? '✅ aktivan' : '— ',
-                      widget.settings.stepEnabled && widget.settings.stepAvailable),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Event log
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('─── Zadnji događaji ───',
-                  style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _events.length,
-                itemBuilder: (_, i) {
-                  final e = _events[i];
-                  final time =
-                      '${e.timestamp.hour.toString().padLeft(2, '0')}:'
-                      '${e.timestamp.minute.toString().padLeft(2, '0')}:'
-                      '${e.timestamp.second.toString().padLeft(2, '0')}';
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      children: [
-                        Text(time,
-                            style: TextStyle(fontSize: t.captionSize,
-                                color: t.inkFaint)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(e.message,
-                              style: TextStyle(
-                                  fontSize: t.captionSize,
-                                  color: e.isAlarm ? t.destructive : t.inkMedium)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+        ]),
       ),
     );
   }
 
-  Widget _reading(String label, String value, bool active) {
-    final t = AppTheme();
+  Widget _buildTopBar(AppSettings s) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: _theme.border))),
+      child: Row(children: [
+        Text('📡', style: const TextStyle(fontSize: 22)),
+        const SizedBox(width: 10),
+        Text('Senso v1.0.0',
+            style: TextStyle(fontFamily: 'monospace',
+                fontSize: _theme.headerSize * 0.85,
+                fontWeight: FontWeight.bold, color: _theme.ink)),
+        if (s.testMode) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9800).withAlpha(30),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: const Color(0xFFFF9800).withAlpha(80)),
+            ),
+            child: Text('TEST',
+                style: TextStyle(fontSize: _theme.captionSize,
+                    color: const Color(0xFFBF6000),
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+        const Spacer(),
+        GestureDetector(
+          onTap: () async {
+            await Navigator.push(context, MaterialPageRoute(
+                builder: (_) => SettingsScreen(settings: widget.settings)));
+            setState(() {
+              TranslationService().setLanguage(widget.settings.language);
+              AppTheme().init(widget.settings.fontSize, widget.settings.contrast);
+              _ntfy = NtfyService(settings: widget.settings);
+            });
+          },
+          child: Text('⚙', style: TextStyle(fontSize: 22, color: _theme.inkLight)),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildStatusCard(bool isActive) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: _theme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _theme.border),
+      ),
+      child: Column(children: [
+        Text(_stateLabel,
+            style: TextStyle(fontSize: _theme.headerSize,
+                fontWeight: FontWeight.bold, color: _stateLabelColor)),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isActive ? _theme.destructive : _theme.accent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            onPressed: _toggle,
+            child: Text(
+                isActive ? _tr.t('btn_stop') : _tr.t('btn_start'),
+                style: TextStyle(fontSize: _theme.bodySize + 2,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildReadings(AppSettings s) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: BoxDecoration(
+        color: _theme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _theme.border),
+      ),
+      child: Column(children: [
+        _readingRow(_tr.t('sensor_accel'),
+            '${_sensor.accelMagnitude.toStringAsFixed(2)} m/s²',
+            s.accelEnabled && s.accelAvailable),
+        _readingRow(_tr.t('sensor_gyro'),
+            '${_sensor.gyroMagnitude.toStringAsFixed(2)} rad/s',
+            s.gyroEnabled && s.gyroAvailable),
+        _readingRow(_tr.t('sensor_step'),
+            _sensor.stepActive ? '✅' : '—',
+            s.stepEnabled && s.stepAvailable),
+      ]),
+    );
+  }
+
+  Widget _readingRow(String label, String value, bool active) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 130,
-            child: Text(label,
-                style: TextStyle(fontSize: t.captionSize,
-                    color: active ? t.inkMedium : t.inkFaint)),
-          ),
-          Text(active ? value : 'disabled',
-              style: TextStyle(fontSize: t.captionSize,
-                  color: active ? t.ink : t.inkFaint,
-                  fontStyle: active ? FontStyle.normal : FontStyle.italic)),
-        ],
-      ),
+      child: Row(children: [
+        SizedBox(
+          width: 140,
+          child: Text(label,
+              style: TextStyle(fontSize: _theme.captionSize,
+                  color: active ? _theme.inkMedium : _theme.inkFaint)),
+        ),
+        Text(active ? value : _tr.t('sensor_disabled'),
+            style: TextStyle(
+                fontSize: _theme.captionSize,
+                color: active ? _theme.ink : _theme.inkFaint,
+                fontStyle: active ? FontStyle.normal : FontStyle.italic)),
+      ]),
+    );
+  }
+
+  Widget _buildEventLogHeader() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(_tr.t('last_events'),
+          style: TextStyle(fontSize: _theme.captionSize, color: _theme.inkFaint)),
+    );
+  }
+
+  Widget _buildEventLog() {
+    return ListView.builder(
+      itemCount: _events.length,
+      itemBuilder: (_, i) {
+        final e = _events[i];
+        final time = '${e.timestamp.hour.toString().padLeft(2, '0')}:'
+            '${e.timestamp.minute.toString().padLeft(2, '0')}:'
+            '${e.timestamp.second.toString().padLeft(2, '0')}';
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(children: [
+            Text(time, style: TextStyle(
+                fontSize: _theme.captionSize, color: _theme.inkFaint,
+                fontFamily: 'monospace')),
+            const SizedBox(width: 8),
+            Expanded(child: Text(e.message,
+                style: TextStyle(
+                    fontSize: _theme.captionSize,
+                    color: e.isAlarm ? _theme.destructive : _theme.inkMedium))),
+          ]),
+        );
+      },
     );
   }
 }

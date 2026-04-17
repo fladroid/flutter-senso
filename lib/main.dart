@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'models/app_settings.dart';
 import 'services/app_theme.dart';
 import 'services/sensor_service.dart';
+import 'services/translation_service.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -11,14 +12,13 @@ void main() async {
   final settings = AppSettings();
   await settings.load();
 
-  // Provjera dostupnosti senzora
   final availability = await SensorService.checkAvailability();
   settings.accelAvailable      = availability['accel']      ?? false;
-  settings.gyroAvailable        = availability['gyro']       ?? false;
-  settings.stepAvailable        = availability['step']       ?? false;
-  settings.stationaryAvailable  = availability['stationary'] ?? false;
+  settings.gyroAvailable       = availability['gyro']       ?? false;
+  settings.stepAvailable       = availability['step']       ?? false;
+  settings.stationaryAvailable = availability['stationary'] ?? false;
 
-  // Init tema
+  await TranslationService().load(settings.language);
   AppTheme().init(settings.fontSize, settings.contrast);
 
   runApp(SensoApp(settings: settings));
@@ -37,9 +37,7 @@ class SensoApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: t.background,
         colorScheme: ColorScheme.light(
-          primary:   t.accent,
-          secondary: t.accent,
-          surface:   t.surface,
+          primary: t.accent, secondary: t.accent, surface: t.surface,
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: t.background,
@@ -51,8 +49,7 @@ class SensoApp extends StatelessWidget {
               (s) => s.contains(WidgetState.selected) ? t.accent : t.inkFaint),
           trackColor: WidgetStateProperty.resolveWith(
               (s) => s.contains(WidgetState.selected)
-                  ? t.accent.withAlpha(80)
-                  : t.border),
+                  ? t.accent.withAlpha(80) : t.border),
         ),
         textTheme: TextTheme(
           bodyMedium: TextStyle(color: t.ink,       fontSize: t.bodySize),

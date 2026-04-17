@@ -2,275 +2,288 @@
 import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
 import '../services/app_theme.dart';
+import '../services/translation_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppSettings settings;
   const SettingsScreen({super.key, required this.settings});
-
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _primaryUrlCtrl;
-  late TextEditingController _fallbackUrlCtrl;
+  final _theme = AppTheme();
+  final _tr    = TranslationService();
+  late TextEditingController _primaryCtrl;
+  late TextEditingController _fallbackCtrl;
   late TextEditingController _tokenCtrl;
 
   @override
   void initState() {
     super.initState();
-    _primaryUrlCtrl  = TextEditingController(text: widget.settings.ntfyPrimaryUrl);
-    _fallbackUrlCtrl = TextEditingController(text: widget.settings.ntfyFallbackUrl);
-    _tokenCtrl       = TextEditingController(text: widget.settings.ntfyToken);
+    _primaryCtrl  = TextEditingController(text: widget.settings.ntfyPrimaryUrl);
+    _fallbackCtrl = TextEditingController(text: widget.settings.ntfyFallbackUrl);
+    _tokenCtrl    = TextEditingController(text: widget.settings.ntfyToken);
   }
 
   @override
   void dispose() {
-    _primaryUrlCtrl.dispose();
-    _fallbackUrlCtrl.dispose();
-    _tokenCtrl.dispose();
+    _primaryCtrl.dispose(); _fallbackCtrl.dispose(); _tokenCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    widget.settings.ntfyPrimaryUrl  = _primaryUrlCtrl.text.trim();
-    widget.settings.ntfyFallbackUrl = _fallbackUrlCtrl.text.trim();
+    widget.settings.ntfyPrimaryUrl  = _primaryCtrl.text.trim();
+    widget.settings.ntfyFallbackUrl = _fallbackCtrl.text.trim();
     widget.settings.ntfyToken       = _tokenCtrl.text.trim();
     await widget.settings.save();
     AppTheme().init(widget.settings.fontSize, widget.settings.contrast);
+    TranslationService().setLanguage(widget.settings.language);
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = AppTheme();
+    final t = _theme;
     final s = widget.settings;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Settings',
-            style: TextStyle(fontSize: t.headerSize, fontWeight: FontWeight.bold)),
-        actions: [
-          TextButton(
-            onPressed: _save,
-            child: Text('Save',
-                style: TextStyle(color: t.accent, fontSize: t.bodySize,
-                    fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      backgroundColor: t.background,
+      body: SafeArea(child: Column(children: [
+        // Top bar
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: t.border))),
+          child: Row(children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Text('‹',
+                  style: TextStyle(fontSize: 26, color: t.inkLight))),
+            const SizedBox(width: 16),
+            Text(_tr.t('settings_title'),
+                style: TextStyle(fontFamily: 'monospace',
+                    fontSize: t.headerSize * 0.85,
+                    fontWeight: FontWeight.bold, color: t.ink)),
+            const Spacer(),
+            GestureDetector(
+              onTap: _save,
+              child: Text(_tr.t('settings_save'),
+                  style: TextStyle(fontSize: t.bodySize,
+                      color: t.accent, fontWeight: FontWeight.bold)),
+            ),
+          ]),
+        ),
 
-          // ── SENZORI ──────────────────────────────────────────
-          _sectionHeader('Senzori', t),
-          _sensorSwitch(
-            label: 'Accelerometer',
-            available: s.accelAvailable,
-            value: s.accelEnabled,
-            onChanged: (v) => setState(() => s.accelEnabled = v),
-            t: t,
-          ),
-          _sensorSwitch(
-            label: 'Gyroscope',
-            available: s.gyroAvailable,
-            value: s.gyroEnabled,
-            onChanged: (v) => setState(() => s.gyroEnabled = v),
-            t: t,
-          ),
-          _sensorSwitch(
-            label: 'Step detector',
-            available: s.stepAvailable,
-            value: s.stepEnabled,
-            onChanged: (v) => setState(() => s.stepEnabled = v),
-            t: t,
-          ),
-          _sensorSwitch(
-            label: 'Stationary detect',
-            available: s.stationaryAvailable,
-            value: s.stationaryEnabled,
-            onChanged: (v) => setState(() => s.stationaryEnabled = v),
-            t: t,
-          ),
+        // Content
+        Expanded(child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
 
-          const SizedBox(height: 16),
+            // ── SENZORI ──────────────────────────────────
+            _section(_tr.t('section_sensors')),
+            _sensorTile('sensor_accel',      s.accelAvailable,      s.accelEnabled,      (v) => s.accelEnabled = v),
+            _sensorTile('sensor_gyro',       s.gyroAvailable,       s.gyroEnabled,       (v) => s.gyroEnabled = v),
+            _sensorTile('sensor_step',       s.stepAvailable,       s.stepEnabled,       (v) => s.stepEnabled = v),
+            _sensorTile('sensor_stationary', s.stationaryAvailable, s.stationaryEnabled, (v) => s.stationaryEnabled = v),
 
-          // ── DETEKCIJA ─────────────────────────────────────────
-          _sectionHeader('Detekcija', t),
+            _divider(),
 
-          // Response window
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text('Response window',
-                      style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-                ),
+            // ── DETEKCIJA ─────────────────────────────────
+            _section(_tr.t('section_detection')),
+
+            // Response window
+            _row(
+              child: Row(children: [
+                Expanded(child: Text(_tr.t('response_window'),
+                    style: TextStyle(fontSize: t.bodySize, color: t.ink))),
                 DropdownButton<int>(
                   value: s.responseWindow,
+                  underline: const SizedBox(),
+                  style: TextStyle(fontSize: t.bodySize, color: t.ink),
                   items: [3, 5, 10].map((v) => DropdownMenuItem(
                     value: v,
-                    child: Text('${v}s',
-                        style: TextStyle(fontSize: t.bodySize, color: t.ink)),
+                    child: Text('${v}s'),
                   )).toList(),
                   onChanged: (v) => setState(() => s.responseWindow = v!),
                 ),
-              ],
+              ]),
             ),
-          ),
 
-          // Fall threshold
-          _sliderRow(
-            label: 'Fall threshold',
-            value: s.fallThreshold,
-            unit: 'm/s²',
-            min: 1.0, max: 5.0,
-            onChanged: (v) => setState(() => s.fallThreshold = double.parse(v.toStringAsFixed(1))),
-            t: t,
-          ),
-
-          // Rotation threshold
-          _sliderRow(
-            label: 'Rotation threshold',
-            value: s.rotationThreshold,
-            unit: 'rad/s',
-            min: 1.0, max: 8.0,
-            onChanged: (v) => setState(() => s.rotationThreshold = double.parse(v.toStringAsFixed(1))),
-            t: t,
-          ),
-
-          const SizedBox(height: 16),
-
-          // ── NTFY ─────────────────────────────────────────────
-          _sectionHeader('Notifikacije', t),
-          _textField('Primary URL', _primaryUrlCtrl, t),
-          _textField('Fallback URL', _fallbackUrlCtrl, t),
-          _textField('Token', _tokenCtrl, t, obscure: true),
-
-          const SizedBox(height: 16),
-
-          // ── DISPLAY ───────────────────────────────────────────
-          _sectionHeader('Display', t),
-
-          // Font size
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Expanded(child: Text('Font size',
-                    style: TextStyle(fontSize: t.bodySize, color: t.ink))),
-                DropdownButton<String>(
-                  value: s.fontSize,
-                  items: ['small', 'medium', 'large'].map((v) => DropdownMenuItem(
-                    value: v,
-                    child: Text(v, style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-                  )).toList(),
-                  onChanged: (v) => setState(() => s.fontSize = v!),
-                ),
-              ],
+            _slider(
+              label: _tr.t('fall_threshold'),
+              value: s.fallThreshold, unit: 'm/s²',
+              min: 1.0, max: 5.0,
+              onChanged: (v) => setState(() =>
+                  s.fallThreshold = double.parse(v.toStringAsFixed(1))),
             ),
-          ),
 
-          // Contrast
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Expanded(child: Text('Contrast',
-                    style: TextStyle(fontSize: t.bodySize, color: t.ink))),
-                DropdownButton<String>(
-                  value: s.contrast,
-                  items: ['normal', 'high'].map((v) => DropdownMenuItem(
-                    value: v,
-                    child: Text(v, style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-                  )).toList(),
-                  onChanged: (v) => setState(() => s.contrast = v!),
-                ),
-              ],
+            _slider(
+              label: _tr.t('rotation_threshold'),
+              value: s.rotationThreshold, unit: 'rad/s',
+              min: 1.0, max: 8.0,
+              onChanged: (v) => setState(() =>
+                  s.rotationThreshold = double.parse(v.toStringAsFixed(1))),
             ),
-          ),
 
-          const SizedBox(height: 32),
-          Text('Senso v1.0.0  |  com.fladroid.senso',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
-          const SizedBox(height: 16),
-        ],
-      ),
+            _divider(),
+
+            // ── TEST MODE ─────────────────────────────────
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(_tr.t('test_mode'),
+                  style: TextStyle(fontSize: t.bodySize,
+                      color: t.ink, fontWeight: FontWeight.w600)),
+              subtitle: Text(_tr.t('test_mode_subtitle'),
+                  style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
+              value: s.testMode,
+              onChanged: (v) => setState(() => s.testMode = v),
+            ),
+
+            _divider(),
+
+            // ── NOTIFIKACIJE ──────────────────────────────
+            _section(_tr.t('section_notifications')),
+            _textField(_tr.t('ntfy_primary'),  _primaryCtrl),
+            _textField(_tr.t('ntfy_fallback'), _fallbackCtrl),
+            _textField(_tr.t('ntfy_token'),    _tokenCtrl, obscure: true),
+
+            _divider(),
+
+            // ── DISPLAY ───────────────────────────────────
+            _section(_tr.t('section_display')),
+
+            // Jezik
+            _row(child: Row(children: [
+              Expanded(child: Text(_tr.t('language'),
+                  style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+              DropdownButton<String>(
+                value: s.language,
+                underline: const SizedBox(),
+                style: TextStyle(fontSize: t.bodySize, color: t.ink),
+                items: TranslationService.languages.map((l) =>
+                    DropdownMenuItem(value: l['code'], child: Text(l['label']!))
+                ).toList(),
+                onChanged: (v) => setState(() {
+                  s.language = v!;
+                  TranslationService().setLanguage(v);
+                }),
+              ),
+            ])),
+
+            // Font size
+            _row(child: Row(children: [
+              Expanded(child: Text(_tr.t('font_size'),
+                  style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+              DropdownButton<String>(
+                value: s.fontSize,
+                underline: const SizedBox(),
+                style: TextStyle(fontSize: t.bodySize, color: t.ink),
+                items: [
+                  DropdownMenuItem(value: 'small',  child: Text(_tr.t('font_small'))),
+                  DropdownMenuItem(value: 'medium', child: Text(_tr.t('font_medium'))),
+                  DropdownMenuItem(value: 'large',  child: Text(_tr.t('font_large'))),
+                ],
+                onChanged: (v) => setState(() {
+                  s.fontSize = v!;
+                  AppTheme().setSize(v);
+                }),
+              ),
+            ])),
+
+            // Contrast
+            _row(child: Row(children: [
+              Expanded(child: Text(_tr.t('contrast'),
+                  style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+              DropdownButton<String>(
+                value: s.contrast,
+                underline: const SizedBox(),
+                style: TextStyle(fontSize: t.bodySize, color: t.ink),
+                items: [
+                  DropdownMenuItem(value: 'normal', child: Text(_tr.t('contrast_normal'))),
+                  DropdownMenuItem(value: 'high',   child: Text(_tr.t('contrast_high'))),
+                ],
+                onChanged: (v) => setState(() {
+                  s.contrast = v!;
+                  AppTheme().setContrast(v);
+                }),
+              ),
+            ])),
+
+            const SizedBox(height: 32),
+            Text('Senso v1.0.0  |  com.fladroid.senso',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
+            const SizedBox(height: 16),
+          ],
+        )),
+      ])),
     );
   }
 
-  Widget _sectionHeader(String title, AppTheme t) => Padding(
-    padding: const EdgeInsets.only(top: 8, bottom: 4),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title,
-            style: TextStyle(fontSize: t.bodySize, fontWeight: FontWeight.bold,
-                color: t.accent)),
-        Divider(color: t.border, height: 8),
-      ],
-    ),
+  // ── Helpers ───────────────────────────────────────────
+
+  Widget _section(String title) => Padding(
+    padding: const EdgeInsets.only(top: 4, bottom: 6),
+    child: Text(title,
+        style: TextStyle(fontSize: _theme.captionSize,
+            fontWeight: FontWeight.bold,
+            color: _theme.accent,
+            letterSpacing: 0.8)),
   );
 
-  Widget _sensorSwitch({
-    required String label,
-    required bool available,
-    required bool value,
-    required Function(bool) onChanged,
-    required AppTheme t,
-  }) =>
-    SwitchListTile(
+  Widget _divider() => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: Divider(color: _theme.border, height: 1),
+  );
+
+  Widget _row({required Widget child}) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: child,
+  );
+
+  Widget _sensorTile(String key, bool available, bool value,
+      Function(bool) onChanged) {
+    final t = _theme;
+    return SwitchListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
-      title: Text(label,
+      title: Text(_tr.t(key),
           style: TextStyle(fontSize: t.bodySize,
               color: available ? t.ink : t.inkFaint)),
-      subtitle: available
-          ? null
-          : Text('Not available on this device',
-              style: TextStyle(fontSize: t.captionSize, color: t.inkFaint,
-                  fontStyle: FontStyle.italic)),
+      subtitle: available ? null : Text(_tr.t('sensor_not_available'),
+          style: TextStyle(fontSize: t.captionSize,
+              color: t.inkFaint, fontStyle: FontStyle.italic)),
       value: available && value,
-      onChanged: available ? onChanged : null,
+      onChanged: available ? (v) => setState(() => onChanged(v)) : null,
     );
+  }
 
-  Widget _sliderRow({
-    required String label,
-    required double value,
-    required String unit,
-    required double min,
-    required double max,
-    required Function(double) onChanged,
-    required AppTheme t,
-  }) =>
-    Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Expanded(child: Text(label,
-                style: TextStyle(fontSize: t.bodySize, color: t.ink))),
-            Text('${value.toStringAsFixed(1)} $unit',
-                style: TextStyle(fontSize: t.bodySize,
-                    color: t.accent, fontWeight: FontWeight.bold)),
-          ]),
-          Slider(
-            value: value, min: min, max: max,
-            activeColor: t.accent,
-            inactiveColor: t.border,
-            onChanged: onChanged,
-          ),
-        ],
+  Widget _slider({
+    required String label, required double value, required String unit,
+    required double min, required double max, required Function(double) onChanged,
+  }) {
+    final t = _theme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Text(label,
+            style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+        Text('${value.toStringAsFixed(1)} $unit',
+            style: TextStyle(fontSize: t.bodySize,
+                color: t.accent, fontWeight: FontWeight.bold)),
+      ]),
+      Slider(
+        value: value, min: min, max: max,
+        activeColor: t.accent, inactiveColor: t.border,
+        onChanged: onChanged,
       ),
-    );
+    ]);
+  }
 
-  Widget _textField(String label, TextEditingController ctrl, AppTheme t,
-      {bool obscure = false}) =>
-    Padding(
+  Widget _textField(String label, TextEditingController ctrl,
+      {bool obscure = false}) {
+    final t = _theme;
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: ctrl,
@@ -282,9 +295,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(color: t.border)),
           focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: t.accent)),
+              borderSide: BorderSide(color: t.accent, width: 1.5)),
           isDense: true,
         ),
       ),
     );
+  }
 }
