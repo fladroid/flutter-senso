@@ -19,34 +19,34 @@ class SensorService {
   SensoState _state = SensoState.idle;
   SensoState get state => _state;
 
-  final _stateController = StreamController<SensoState>.broadcast();
-  Stream<SensoState> get stateStream => _stateController.stream;
+  final _stateController   = StreamController<SensoState>.broadcast();
+  final _eventController   = StreamController<SensorEvent>.broadcast();
+  final _readingController = StreamController<void>.broadcast();
 
-  final _eventController = StreamController<SensorEvent>.broadcast();
+  Stream<SensoState> get stateStream  => _stateController.stream;
   Stream<SensorEvent> get eventStream => _eventController.stream;
+  Stream<void> get readingStream      => _readingController.stream;
 
-  // Live sensor readings (za SensorScreen)
   double accelMagnitude = 0.0;
   double gyroMagnitude  = 0.0;
   bool   stepActive     = false;
 
-  final _readingController = StreamController<void>.broadcast();
-  Stream<void> get readingStream => _readingController.stream;
-
   StreamSubscription? _accelSub;
   StreamSubscription? _gyroSub;
   StreamSubscription? _stepSub;
-
   Timer? _cooldownTimer;
   Timer? _responseTimer;
+  Timer? _pollingTimer;
   bool   _inCooldown = false;
 
-  // Callback za response dialog
+  // Buffered readings između polling intervala
+  double _accelBuf = 0.0;
+  double _gyroBuf  = 0.0;
+
   Function()? onTrigger;
 
   SensorService({required this.settings});
 
-  // Provjera dostupnosti senzora
   static Future<Map<String, bool>> checkAvailability() async {
     final result = <String, bool>{
       'accel':      false,
@@ -55,33 +55,24 @@ class SensorService {
       'stationary': false,
     };
 
-    // Accelerometer
     try {
       final sub = accelerometerEventStream().listen((_) {});
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(const Duration(milliseconds: 300));
       await sub.cancel();
       result['accel'] = true;
     } catch (_) {}
 
-    // Gyroscope
     try {
       final sub = gyroscopeEventStream().listen((_) {});
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(const Duration(milliseconds: 300));
       await sub.cancel();
       result['gyro'] = true;
     } catch (_) {}
 
-    // Step detector
-    try {
-      // sensors_plus nema direktan step stream — koristimo userAccelerometer kao proxy
-      // Pravi step_detector dostupan kroz platform channel; za sada označi kao available
-      // ako accelerometer radi (sve Samsung uređaje imaju step detector)
-      result['step'] = result['accel']!;
-    } catch (_) {}
+    // Step detector — dostupan ako accelerometer radi (svi Samsung uređaji)
+    result['step'] = result['accel']!;
 
-    // Stationary detect — samo SA9+
-    // sensors_plus nema direktan pristup; detektujemo indirektno
-    // Označi kao false — override ručno ako pronađemo
+    // Stationary detect — sensors_plus nema direktan stream, ostaje false
     result['stationary'] = false;
 
     return result;
@@ -92,28 +83,54 @@ class SensorService {
     _setState(SensoState.monitoring);
     _log('Monitoring started 🟢');
 
+    final interval = Duration(milliseconds: settings.pollingIntervalMs);
+
+    // Accelerometer — buffer max vrijednost
     if (settings.accelEnabled && settings.accelAvailable) {
       _accelSub = userAccelerometerEventStream().listen((e) {
-        accelMagnitude = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
-        _readingController.add(null);
-        _checkFall();
+        final m = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+        if (m > _accelBuf) _accelBuf = m;
       });
     }
 
+    // Gyroscope — buffer max vrijednost
     if (settings.gyroEnabled && settings.gyroAvailable) {
       _gyroSub = gyroscopeEventStream().listen((e) {
-        gyroMagnitude = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
-        _readingController.add(null);
+        final m = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+        if (m > _gyroBuf) _gyroBuf = m;
       });
     }
+
+    // Step detector
+    if (settings.stepEnabled && settings.stepAvailable) {
+      _stepSub = accelerometerEventStream().listen((e) {
+        // Koristimo akcelerometar za procjenu koraka — magnitude > 1.2 = hoda
+        final m = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+        stepActive = m > 1.2 && m < 3.0;
+      });
+    }
+
+    // Polling timer — provjera thresholda na svakih N ms
+    _pollingTimer = Timer.periodic(interval, (_) {
+      accelMagnitude = _accelBuf;
+      gyroMagnitude  = _gyroBuf;
+      _accelBuf = 0.0;
+      _gyroBuf  = 0.0;
+      _readingController.add(null);
+      _checkFall();
+    });
   }
 
   void stop() {
     _accelSub?.cancel();
     _gyroSub?.cancel();
     _stepSub?.cancel();
+    _pollingTimer?.cancel();
     _cooldownTimer?.cancel();
     _responseTimer?.cancel();
+    accelMagnitude = 0.0;
+    gyroMagnitude  = 0.0;
+    stepActive     = false;
     _setState(SensoState.idle);
     _log('Monitoring stopped ⏹');
   }
@@ -127,6 +144,9 @@ class SensorService {
     final gyroTrigger  = settings.gyroEnabled  && settings.gyroAvailable  &&
         gyroMagnitude  > settings.rotationThreshold;
 
+    // Step filter — ako hoda, nije pad (ako je step sensor aktivan i uključen)
+    if (settings.stepEnabled && settings.stepAvailable && stepActive) return;
+
     if (accelTrigger || gyroTrigger) {
       _trigger();
     }
@@ -134,13 +154,11 @@ class SensorService {
 
   void _trigger() {
     _setState(SensoState.trigger);
-    _log('⚠️ Trigger — accel: ${accelMagnitude.toStringAsFixed(2)} m/s²');
+    _log('⚠️ Trigger — ${accelMagnitude.toStringAsFixed(2)} m/s² / ${gyroMagnitude.toStringAsFixed(2)} rad/s');
     onTrigger?.call();
 
     _responseTimer = Timer(Duration(seconds: settings.responseWindow), () {
-      if (_state == SensoState.trigger) {
-        triggerAlarm();
-      }
+      if (_state == SensoState.trigger) triggerAlarm();
     });
   }
 
@@ -154,9 +172,8 @@ class SensorService {
 
   void triggerAlarm() {
     _setState(SensoState.alarm);
-    _log('🆘 ALARM — pad detektovan!', isAlarm: true);
+    _log('Pad detektovan!', isAlarm: true);
     _startCooldown();
-    // ntfy šalje NtfyService (poziva se iz HomeScreen)
   }
 
   void _startCooldown() {
@@ -175,8 +192,8 @@ class SensorService {
   void _log(String msg, {bool isAlarm = false}) {
     _eventController.add(SensorEvent(
       timestamp: DateTime.now(),
-      message: msg,
-      isAlarm: isAlarm,
+      message:   msg,
+      isAlarm:   isAlarm,
     ));
   }
 

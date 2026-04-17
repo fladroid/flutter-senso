@@ -34,6 +34,7 @@ class SensoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Senso',
       debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.light,
       theme: ThemeData(
         scaffoldBackgroundColor: t.background,
         colorScheme: ColorScheme.light(

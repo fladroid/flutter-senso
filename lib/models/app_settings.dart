@@ -15,10 +15,11 @@ class AppSettings {
   bool stationaryEnabled = true;
 
   // Detekcija
-  double fallThreshold     = 2.5;
+  double fallThreshold     = 4.0;
   double rotationThreshold = 3.0;
   int    responseWindow    = 5;
   int    cooldownSeconds   = 30;
+  int    pollingIntervalMs = 200; // ms: 100, 200, 500, 1000
 
   // ntfy
   String ntfyPrimaryUrl  = 'https://ntfy-balsam.dynu.net/senso_guard';
