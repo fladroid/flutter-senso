@@ -13,7 +13,7 @@
         "trigger_ok": "YES, I'M OK",
         "log_monitoring_start": "Monitoring started 🟢",
         "log_monitoring_stop": "Monitoring stopped ⏹",
-        "log_trigger": "⚠️ Trigger — accel: {val} m/s²",
+        "log_trigger": "⚠️ Trigger — {val} m/s² / rad/s",
         "log_user_ok": "✅ User confirmed — OK",
         "log_alarm": "🆘 ALARM — fall detected!",
         "sensor_accel": "Accelerometer",
@@ -53,7 +53,9 @@
         "ntfy_start_body": "Fall detection started.",
         "ntfy_stop_title": "Senso — Stopped ⏹",
         "ntfy_stop_body": "Monitoring stopped.",
-        "cooldown": "Cooldown"
+        "cooldown": "Cooldown",
+        "log_step_active": "🚶 Step detector — active",
+        "log_step_idle": "🧍 Step detector — idle"
     },
     "de": {
         "app_title": "Senso",
@@ -69,7 +71,7 @@
         "trigger_ok": "JA, MIR GEHT'S GUT",
         "log_monitoring_start": "Überwachung gestartet 🟢",
         "log_monitoring_stop": "Überwachung gestoppt ⏹",
-        "log_trigger": "⚠️ Auslöser — Akzel.: {val} m/s²",
+        "log_trigger": "⚠️ Auslöser — {val} m/s² / rad/s",
         "log_user_ok": "✅ Nutzer bestätigt — OK",
         "log_alarm": "🆘 ALARM — Sturz erkannt!",
         "sensor_accel": "Beschleunigungssensor",
@@ -109,7 +111,9 @@
         "ntfy_start_body": "Sturzerkennung gestartet.",
         "ntfy_stop_title": "Senso — Gestoppt ⏹",
         "ntfy_stop_body": "Überwachung gestoppt.",
-        "cooldown": "Abkühlzeit"
+        "cooldown": "Abkühlzeit",
+        "log_step_active": "🚶 Schrittsensor — aktiv",
+        "log_step_idle": "🧍 Schrittsensor — ruhend"
     },
     "hr": {
         "app_title": "Senso",
@@ -125,7 +129,7 @@
         "trigger_ok": "DA, U REDU SAM",
         "log_monitoring_start": "Praćenje pokrenuto 🟢",
         "log_monitoring_stop": "Praćenje zaustavljeno ⏹",
-        "log_trigger": "⚠️ Okidač — akcel.: {val} m/s²",
+        "log_trigger": "⚠️ Okidač — {val} m/s² / rad/s",
         "log_user_ok": "✅ Korisnik potvrdio — OK",
         "log_alarm": "🆘 ALARM — pad detektiran!",
         "sensor_accel": "Akcelerometar",
@@ -165,7 +169,9 @@
         "ntfy_start_body": "Detekcija pada pokrenuta.",
         "ntfy_stop_title": "Senso — Zaustavljeno ⏹",
         "ntfy_stop_body": "Praćenje zaustavljeno.",
-        "cooldown": "Pauza između alarma"
+        "cooldown": "Pauza između alarma",
+        "log_step_active": "🚶 Detektor koraka — aktivan",
+        "log_step_idle": "🧍 Detektor koraka — miruje"
     },
     "sr_lat": {
         "app_title": "Senso",
@@ -181,7 +187,7 @@
         "trigger_ok": "DA, U REDU SAM",
         "log_monitoring_start": "Praćenje pokrenuto 🟢",
         "log_monitoring_stop": "Praćenje zaustavljeno ⏹",
-        "log_trigger": "⚠️ Okidač — akcel.: {val} m/s²",
+        "log_trigger": "⚠️ Okidač — {val} m/s² / rad/s",
         "log_user_ok": "✅ Korisnik potvrdio — OK",
         "log_alarm": "🆘 ALARM — pad detektovan!",
         "sensor_accel": "Akcelerometar",
@@ -221,7 +227,9 @@
         "ntfy_start_body": "Detekcija pada pokrenuta.",
         "ntfy_stop_title": "Senso — Zaustavljeno ⏹",
         "ntfy_stop_body": "Praćenje zaustavljeno.",
-        "cooldown": "Pauza između alarma"
+        "cooldown": "Pauza između alarma",
+        "log_step_active": "🚶 Detektor koraka — aktivan",
+        "log_step_idle": "🧍 Detektor koraka — miruje"
     },
     "sr_cyr": {
         "app_title": "Сенсо",
@@ -237,7 +245,7 @@
         "trigger_ok": "ДА, У РЕДУ САМ",
         "log_monitoring_start": "Праћење покренуто 🟢",
         "log_monitoring_stop": "Праћење заустављено ⏹",
-        "log_trigger": "⚠️ Окидач — акцел.: {val} m/s²",
+        "log_trigger": "⚠️ Окидач — {val} m/s² / rad/s",
         "log_user_ok": "✅ Корисник потврдио — ОК",
         "log_alarm": "🆘 АЛАРМ — пад детектован!",
         "sensor_accel": "Акцелерометар",
@@ -277,6 +285,8 @@
         "ntfy_start_body": "Детекција пада покренута.",
         "ntfy_stop_title": "Сенсо — Заустављено ⏹",
         "ntfy_stop_body": "Праћење заустављено.",
-        "cooldown": "Пауза између аларма"
+        "cooldown": "Пауза између аларма",
+        "log_step_active": "🚶 Детектор корака — активан",
+        "log_step_idle": "🧍 Детектор корака — мирује"
     }
 }

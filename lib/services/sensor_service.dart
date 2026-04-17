@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../models/app_settings.dart';
+import 'translation_service.dart';
 
 enum SensoState { idle, monitoring, trigger, alarm }
 
@@ -51,6 +52,7 @@ class SensorService {
   final List<double> _accelHistory = [];
   static const int _historySize = 10;
 
+  final _tr = TranslationService();
   Function()? onTrigger;
 
   SensorService({required this.settings});
@@ -86,7 +88,7 @@ class SensorService {
   void start() {
     if (_state != SensoState.idle) return;
     _setState(SensoState.monitoring);
-    _log('Monitoring started 🟢');
+    _log(_tr.t('log_monitoring_start'));
 
     final interval = Duration(milliseconds: settings.pollingIntervalMs);
 
@@ -123,7 +125,13 @@ class SensorService {
         final variance = _accelHistory.map((v) => (v - avg) * (v - avg))
             .reduce((a, b) => a + b) / _accelHistory.length;
         // Hod: varijanca 0.1-2.0, prosječna magnitude 0.3-2.5
-        stepActive = variance > 0.1 && variance < 2.0 && avg > 0.3 && avg < 2.5;
+        final newStepActive = variance > 0.1 && variance < 2.0 && avg > 0.3 && avg < 2.5;
+      if (newStepActive != stepActive) {
+        stepActive = newStepActive;
+        _log(stepActive ? _tr.t('log_step_active') : _tr.t('log_step_idle'));
+      } else {
+        stepActive = newStepActive;
+      }
       } else {
         stepActive = false;
       }
@@ -144,7 +152,7 @@ class SensorService {
     stepActive     = false;
     _accelHistory.clear();
     _setState(SensoState.idle);
-    _log('Monitoring stopped ⏹');
+    _log(_tr.t('log_monitoring_stop'));
   }
 
   void _checkFall() {
@@ -170,7 +178,7 @@ class SensorService {
     triggerGyro  = gyroMagnitude;
 
     _setState(SensoState.trigger);
-    _log('⚠️ Trigger — ${triggerAccel.toStringAsFixed(2)} m/s² / ${triggerGyro.toStringAsFixed(2)} rad/s');
+    _log(_tr.t('log_trigger', params: {'val': '${triggerAccel.toStringAsFixed(2)} / ${triggerGyro.toStringAsFixed(2)}'}));
     onTrigger?.call();
 
     _responseTimer = Timer(Duration(seconds: settings.responseWindow), () {
@@ -181,14 +189,14 @@ class SensorService {
   void confirmOk() {
     if (_state != SensoState.trigger) return;
     _responseTimer?.cancel();
-    _log('✅ Korisnik potvrdio — OK');
+    _log(_tr.t('log_user_ok'));
     _setState(SensoState.monitoring);
     _startCooldown();
   }
 
   void triggerAlarm() {
     _setState(SensoState.alarm);
-    _log('Pad detektovan!', isAlarm: true);
+    _log(_tr.t('log_alarm'), isAlarm: true);
     _startCooldown();
   }
 

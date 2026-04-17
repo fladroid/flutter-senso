@@ -113,7 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _slider(
               label: _tr.t('fall_threshold'),
               value: s.fallThreshold, unit: 'm/s²',
-              min: 1.0, max: 15.0,
+              min: 1.0, max: 30.0,
               onChanged: (v) => setState(() =>
                   s.fallThreshold = double.parse(v.toStringAsFixed(1))),
             ),
@@ -121,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _slider(
               label: _tr.t('rotation_threshold'),
               value: s.rotationThreshold, unit: 'rad/s',
-              min: 1.0, max: 8.0,
+              min: 1.0, max: 10.0,
               onChanged: (v) => setState(() =>
                   s.rotationThreshold = double.parse(v.toStringAsFixed(1))),
             ),
@@ -211,7 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ])),
 
             const SizedBox(height: 32),
-            Text('Senso v1.0.5  |  com.fladroid.senso',
+            Text('Senso v1.0.6  |  com.fladroid.senso',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             const SizedBox(height: 16),
