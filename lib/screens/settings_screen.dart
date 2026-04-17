@@ -229,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ])),
 
             const SizedBox(height: 32),
-            Text('Senso v1.0.7  |  com.fladroid.senso',
+            Text('Senso v1.0.8  |  com.fladroid.senso',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             const SizedBox(height: 16),

@@ -5,8 +5,8 @@ import '../models/app_settings.dart';
 import '../services/app_theme.dart';
 import '../services/sensor_service.dart';
 import '../services/ntfy_service.dart';
-import 'settings_screen.dart';
 import '../services/translation_service.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -25,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription? _stateSub;
   StreamSubscription? _eventSub;
   StreamSubscription? _readingSub;
-
   bool _dialogShown = false;
 
   @override
@@ -33,9 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _sensor = SensorService(settings: widget.settings);
     _ntfy   = NtfyService(settings: widget.settings);
-
     _sensor.onTrigger = _showTriggerDialog;
-
     _stateSub   = _sensor.stateStream.listen((_) => setState(() {}));
     _eventSub   = _sensor.eventStream.listen((e) {
       setState(() {
@@ -68,7 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showTriggerDialog() {
     if (_dialogShown) return;
     _dialogShown = true;
-
     int remaining = widget.settings.responseWindow;
     Timer? countdownTimer;
 
@@ -85,24 +81,29 @@ class _HomeScreenState extends State<HomeScreen> {
               setDialogState(() => remaining--);
             }
           });
-
           final t = AppTheme();
           return AlertDialog(
             backgroundColor: const Color(0xFFFFF3CD),
             title: Text(_tr.t('trigger_title'),
-                style: TextStyle(fontSize: t.headerSize, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: t.headerSize,
+                    fontWeight: FontWeight.bold)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                    '${_tr.t("trigger_body")}\n\n'
-                    'Akcel: ${_sensor.triggerAccel.toStringAsFixed(2)} m/s²\n'
-                    'Gyro:  ${_sensor.triggerGyro.toStringAsFixed(2)} rad/s',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: t.bodySize + 2)),
+                  '${_tr.t("trigger_body")}\n\n'
+                  'Akcel: ${_sensor.triggerAccel.toStringAsFixed(2)} m/s²\n'
+                  'Gyro:  ${_sensor.triggerGyro.toStringAsFixed(2)} rad/s',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: t.bodySize + 2),
+                ),
                 const SizedBox(height: 16),
-                Text(_tr.t('trigger_alarm_in', params: {'s': remaining.toString()}),
-                    style: TextStyle(fontSize: t.captionSize, color: t.inkMedium)),
+                Text(
+                  _tr.t('trigger_alarm_in',
+                      params: {'s': remaining.toString()}),
+                  style: TextStyle(fontSize: t.captionSize,
+                      color: t.inkMedium),
+                ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: remaining / widget.settings.responseWindow,
@@ -163,16 +164,15 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: t.background,
       appBar: AppBar(
         backgroundColor: t.background,
-        title: Text(_tr.t('app_title') + ' v1.0.7',
+        title: Text('${_tr.t("app_title")} v1.0.8',
             style: TextStyle(fontSize: t.headerSize,
                 fontWeight: FontWeight.bold, color: t.ink)),
         actions: [
           IconButton(
             icon: Icon(Icons.settings, color: t.inkMedium),
             onPressed: () async {
-              await Navigator.push(context,
-                  MaterialPageRoute(
-                      builder: (_) => SettingsScreen(settings: widget.settings)));
+              await Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => SettingsScreen(settings: widget.settings)));
               setState(() {});
             },
           ),
@@ -182,7 +182,6 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
             // Status card
             Container(
               width: double.infinity,
@@ -209,7 +208,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: _toggle,
-                      child: Text(isMonitoring ? _tr.t('btn_stop') : _tr.t('btn_start'),
+                      child: Text(
+                          isMonitoring
+                              ? _tr.t('btn_stop')
+                              : _tr.t('btn_start'),
                           style: TextStyle(fontSize: t.bodySize + 2,
                               fontWeight: FontWeight.bold)),
                     ),
@@ -232,30 +234,38 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _reading(_tr.t('sensor_accel'),
+                  _reading(
+                      _tr.t('sensor_accel'),
                       '${_sensor.accelMagnitude.toStringAsFixed(2)} m/s²',
-                      widget.settings.accelEnabled && widget.settings.accelAvailable),
-                  _reading(_tr.t('sensor_gyro'),
+                      widget.settings.accelEnabled &&
+                          widget.settings.accelAvailable),
+                  _reading(
+                      _tr.t('sensor_gyro'),
                       '${_sensor.gyroMagnitude.toStringAsFixed(2)} rad/s',
-                      widget.settings.gyroEnabled && widget.settings.gyroAvailable),
-                  _reading('Step detector',
-                      _sensor.stepActive ? '✅ aktivan' : '⬜ miruje',
-                      widget.settings.stepEnabled && widget.settings.stepAvailable),
+                      widget.settings.gyroEnabled &&
+                          widget.settings.gyroAvailable),
+                  _readingWithReset(
+                      _tr.t('sensor_step'),
+                      '${_sensor.stepCount} ${_tr.t("step_count")}'
+                      '${_sensor.stepActive ? " 🚶" : ""}',
+                      widget.settings.stepEnabled &&
+                          widget.settings.stepAvailable,
+                      onReset: () =>
+                          setState(() => _sensor.resetStepCount())),
                 ],
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Event log header
             Align(
               alignment: Alignment.centerLeft,
               child: Text(_tr.t('last_events'),
-                  style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
+                  style: TextStyle(fontSize: t.captionSize,
+                      color: t.inkFaint)),
             ),
             const SizedBox(height: 8),
 
-            // Event log
             Expanded(
               child: ListView.builder(
                 itemCount: _events.length,
@@ -280,7 +290,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(e.message,
                               style: TextStyle(
                                   fontSize: t.captionSize,
-                                  color: e.isAlarm ? t.destructive : t.inkMedium)),
+                                  color: e.isAlarm
+                                      ? t.destructive
+                                      : t.inkMedium)),
                         ),
                       ],
                     ),
@@ -306,11 +318,45 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(fontSize: t.captionSize,
                     color: active ? t.inkMedium : t.inkFaint)),
           ),
-          Text(active ? value : 'disabled',
+          Text(
+              active ? value : _tr.t('sensor_disabled'),
               style: TextStyle(
                   fontSize: t.captionSize,
                   color: active ? t.ink : t.inkFaint,
-                  fontStyle: active ? FontStyle.normal : FontStyle.italic)),
+                  fontStyle:
+                      active ? FontStyle.normal : FontStyle.italic)),
+        ],
+      ),
+    );
+  }
+
+  Widget _readingWithReset(String label, String value, bool active,
+      {VoidCallback? onReset}) {
+    final t = AppTheme();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(label,
+                style: TextStyle(fontSize: t.captionSize,
+                    color: active ? t.inkMedium : t.inkFaint)),
+          ),
+          Expanded(
+            child: Text(
+                active ? value : _tr.t('sensor_disabled'),
+                style: TextStyle(
+                    fontSize: t.captionSize,
+                    color: active ? t.ink : t.inkFaint,
+                    fontStyle:
+                        active ? FontStyle.normal : FontStyle.italic)),
+          ),
+          if (active && onReset != null)
+            GestureDetector(
+              onTap: onReset,
+              child: Icon(Icons.refresh, size: 14, color: t.inkFaint),
+            ),
         ],
       ),
     );

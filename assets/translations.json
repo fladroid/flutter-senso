@@ -56,7 +56,10 @@
         "cooldown": "Cooldown",
         "log_step_active": "🚶 Step detector — active",
         "log_step_idle": "🧍 Step detector — idle",
-        "polling_interval": "Polling interval"
+        "polling_interval": "Polling interval",
+        "sensor_step_active": "active",
+        "sensor_step_idle": "idle",
+        "step_count": "Steps"
     },
     "de": {
         "app_title": "Senso",
@@ -115,7 +118,10 @@
         "cooldown": "Abkühlzeit",
         "log_step_active": "🚶 Schrittsensor — aktiv",
         "log_step_idle": "🧍 Schrittsensor — ruhend",
-        "polling_interval": "Abfrageintervall"
+        "polling_interval": "Abfrageintervall",
+        "sensor_step_active": "aktiv",
+        "sensor_step_idle": "ruhend",
+        "step_count": "Schritte"
     },
     "hr": {
         "app_title": "Senso",
@@ -174,7 +180,10 @@
         "cooldown": "Pauza između alarma",
         "log_step_active": "🚶 Detektor koraka — aktivan",
         "log_step_idle": "🧍 Detektor koraka — miruje",
-        "polling_interval": "Interval provjere"
+        "polling_interval": "Interval provjere",
+        "sensor_step_active": "aktivan",
+        "sensor_step_idle": "miruje",
+        "step_count": "Koraci"
     },
     "sr_lat": {
         "app_title": "Senso",
@@ -233,7 +242,10 @@
         "cooldown": "Pauza između alarma",
         "log_step_active": "🚶 Detektor koraka — aktivan",
         "log_step_idle": "🧍 Detektor koraka — miruje",
-        "polling_interval": "Interval provjere"
+        "polling_interval": "Interval provjere",
+        "sensor_step_active": "aktivan",
+        "sensor_step_idle": "miruje",
+        "step_count": "Koraci"
     },
     "sr_cyr": {
         "app_title": "Сенсо",
@@ -292,6 +304,9 @@
         "cooldown": "Пауза између аларма",
         "log_step_active": "🚶 Детектор корака — активан",
         "log_step_idle": "🧍 Детектор корака — мирује",
-        "polling_interval": "Интервал провере"
+        "polling_interval": "Интервал провере",
+        "sensor_step_active": "активан",
+        "sensor_step_idle": "мирује",
+        "step_count": "Кораци"
     }
 }
