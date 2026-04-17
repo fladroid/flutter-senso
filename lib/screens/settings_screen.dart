@@ -1,80 +1,62 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
-import '../services/app_settings.dart';
+import '../models/app_settings.dart';
 import '../services/app_theme.dart';
-import '../services/sensor_service.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final SensorAvailability availability;
-  const SettingsScreen({super.key, required this.availability});
+  final AppSettings settings;
+  const SettingsScreen({super.key, required this.settings});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final s = AppSettings();
-  late TextEditingController _primaryCtrl, _fallbackCtrl, _tokenCtrl;
+  late TextEditingController _primaryUrlCtrl;
+  late TextEditingController _fallbackUrlCtrl;
+  late TextEditingController _tokenCtrl;
 
   @override
   void initState() {
     super.initState();
-    _primaryCtrl  = TextEditingController(text: s.ntfyPrimaryUrl);
-    _fallbackCtrl = TextEditingController(text: s.ntfyFallbackUrl);
-    _tokenCtrl    = TextEditingController(text: s.ntfyToken);
+    _primaryUrlCtrl  = TextEditingController(text: widget.settings.ntfyPrimaryUrl);
+    _fallbackUrlCtrl = TextEditingController(text: widget.settings.ntfyFallbackUrl);
+    _tokenCtrl       = TextEditingController(text: widget.settings.ntfyToken);
   }
 
   @override
   void dispose() {
-    _primaryCtrl.dispose();
-    _fallbackCtrl.dispose();
+    _primaryUrlCtrl.dispose();
+    _fallbackUrlCtrl.dispose();
     _tokenCtrl.dispose();
     super.dispose();
   }
 
-  void _save() {
-    s.ntfyPrimaryUrl  = _primaryCtrl.text.trim();
-    s.ntfyFallbackUrl = _fallbackCtrl.text.trim();
-    s.ntfyToken       = _tokenCtrl.text.trim();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Settings saved.')));
-  }
-
-  Widget _sectionHeader(String title) {
-    final t = AppTheme();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 20, 0, 6),
-      child: Text(title.toUpperCase(),
-        style: TextStyle(fontSize: t.captionSize, color: t.inkLight,
-          fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-    );
-  }
-
-  Widget _sensorTile(String label, bool available, bool value, void Function(bool) onChanged) {
-    final t = AppTheme();
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label, style: TextStyle(fontSize: t.bodySize,
-        color: available ? t.ink : t.inkFaint)),
-      subtitle: available ? null : Text('Not available on this device',
-        style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
-      value: available && value,
-      onChanged: available ? (v) { setState(() => onChanged(v)); } : null,
-    );
+  Future<void> _save() async {
+    widget.settings.ntfyPrimaryUrl  = _primaryUrlCtrl.text.trim();
+    widget.settings.ntfyFallbackUrl = _fallbackUrlCtrl.text.trim();
+    widget.settings.ntfyToken       = _tokenCtrl.text.trim();
+    await widget.settings.save();
+    AppTheme().init(widget.settings.fontSize, widget.settings.contrast);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppTheme();
-    final av = widget.availability;
+    final s = widget.settings;
 
     return Scaffold(
-      backgroundColor: t.background,
       appBar: AppBar(
-        title: Text('Settings', style: TextStyle(fontSize: t.headerSize, color: t.ink)),
+        title: Text('Settings',
+            style: TextStyle(fontSize: t.headerSize, fontWeight: FontWeight.bold)),
         actions: [
-          TextButton(onPressed: _save,
-            child: Text('Save', style: TextStyle(color: t.accent, fontWeight: FontWeight.bold))),
+          TextButton(
+            onPressed: _save,
+            child: Text('Save',
+                style: TextStyle(color: t.accent, fontSize: t.bodySize,
+                    fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
       body: ListView(
@@ -82,138 +64,227 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
 
           // ── SENZORI ──────────────────────────────────────────
-          _sectionHeader('Senzori'),
-          _sensorTile('Accelerometer', av.accelerometer, s.accelEnabled,
-            (v) => s.accelEnabled = v),
-          _sensorTile('Gyroscope', av.gyroscope, s.gyroEnabled,
-            (v) => s.gyroEnabled = v),
-          _sensorTile('Step Detector', av.stepDetector, s.stepEnabled,
-            (v) => s.stepEnabled = v),
-          _sensorTile('Stationary Detect', av.stationary, s.stationaryEnabled,
-            (v) => s.stationaryEnabled = v),
-
-          Divider(color: t.border, height: 32),
-
-          // ── DETEKCIJA ─────────────────────────────────────────
-          _sectionHeader('Detekcija'),
-
-          // Response window
-          Text('Response window', style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-          const SizedBox(height: 6),
-          SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(value: 3,  label: Text('3s')),
-              ButtonSegment(value: 5,  label: Text('5s')),
-              ButtonSegment(value: 10, label: Text('10s')),
-            ],
-            selected: {s.responseWindow},
-            onSelectionChanged: (v) => setState(() => s.responseWindow = v.first),
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith(
-                (st) => st.contains(WidgetState.selected) ? t.accent : t.surface),
-              foregroundColor: WidgetStateProperty.resolveWith(
-                (st) => st.contains(WidgetState.selected) ? Colors.white : t.ink),
-            ),
+          _sectionHeader('Senzori', t),
+          _sensorSwitch(
+            label: 'Accelerometer',
+            available: s.accelAvailable,
+            value: s.accelEnabled,
+            onChanged: (v) => setState(() => s.accelEnabled = v),
+            t: t,
           ),
+          _sensorSwitch(
+            label: 'Gyroscope',
+            available: s.gyroAvailable,
+            value: s.gyroEnabled,
+            onChanged: (v) => setState(() => s.gyroEnabled = v),
+            t: t,
+          ),
+          _sensorSwitch(
+            label: 'Step detector',
+            available: s.stepAvailable,
+            value: s.stepEnabled,
+            onChanged: (v) => setState(() => s.stepEnabled = v),
+            t: t,
+          ),
+          _sensorSwitch(
+            label: 'Stationary detect',
+            available: s.stationaryAvailable,
+            value: s.stationaryEnabled,
+            onChanged: (v) => setState(() => s.stationaryEnabled = v),
+            t: t,
+          ),
+
           const SizedBox(height: 16),
 
+          // ── DETEKCIJA ─────────────────────────────────────────
+          _sectionHeader('Detekcija', t),
+
+          // Response window
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Response window',
+                      style: TextStyle(fontSize: t.bodySize, color: t.ink)),
+                ),
+                DropdownButton<int>(
+                  value: s.responseWindow,
+                  items: [3, 5, 10].map((v) => DropdownMenuItem(
+                    value: v,
+                    child: Text('${v}s',
+                        style: TextStyle(fontSize: t.bodySize, color: t.ink)),
+                  )).toList(),
+                  onChanged: (v) => setState(() => s.responseWindow = v!),
+                ),
+              ],
+            ),
+          ),
+
           // Fall threshold
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Fall threshold', style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-            Text('${s.fallThreshold.toStringAsFixed(1)} m/s²',
-              style: TextStyle(fontSize: t.bodySize, color: t.accent, fontWeight: FontWeight.bold)),
-          ]),
-          Slider(
-            value: s.fallThreshold, min: 1.0, max: 5.0, divisions: 8,
-            activeColor: t.accent,
+          _sliderRow(
+            label: 'Fall threshold',
+            value: s.fallThreshold,
+            unit: 'm/s²',
+            min: 1.0, max: 5.0,
             onChanged: (v) => setState(() => s.fallThreshold = double.parse(v.toStringAsFixed(1))),
+            t: t,
           ),
 
           // Rotation threshold
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Rotation threshold', style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-            Text('${s.rotationThreshold.toStringAsFixed(1)} rad/s',
-              style: TextStyle(fontSize: t.bodySize, color: t.accent, fontWeight: FontWeight.bold)),
-          ]),
-          Slider(
-            value: s.rotationThreshold, min: 1.0, max: 8.0, divisions: 14,
-            activeColor: t.accent,
+          _sliderRow(
+            label: 'Rotation threshold',
+            value: s.rotationThreshold,
+            unit: 'rad/s',
+            min: 1.0, max: 8.0,
             onChanged: (v) => setState(() => s.rotationThreshold = double.parse(v.toStringAsFixed(1))),
+            t: t,
           ),
 
-          Divider(color: t.border, height: 32),
-
-          // ── NOTIFIKACIJE ──────────────────────────────────────
-          _sectionHeader('Notifikacije'),
-          _field('Primary ntfy URL', _primaryCtrl),
-          const SizedBox(height: 10),
-          _field('Fallback ntfy URL', _fallbackCtrl),
-          const SizedBox(height: 10),
-          _field('ntfy Token', _tokenCtrl, obscure: true),
-
-          Divider(color: t.border, height: 32),
-
-          // ── DISPLAY ───────────────────────────────────────────
-          _sectionHeader('Display'),
-
-          Text('Font size', style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-          const SizedBox(height: 6),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'small',  label: Text('Small')),
-              ButtonSegment(value: 'medium', label: Text('Medium')),
-              ButtonSegment(value: 'large',  label: Text('Large')),
-            ],
-            selected: {s.fontSize},
-            onSelectionChanged: (v) => setState(() { s.fontSize = v.first; AppTheme().setSize(v.first); }),
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith(
-                (st) => st.contains(WidgetState.selected) ? t.accent : t.surface),
-              foregroundColor: WidgetStateProperty.resolveWith(
-                (st) => st.contains(WidgetState.selected) ? Colors.white : t.ink),
-            ),
-          ),
           const SizedBox(height: 16),
 
-          Text('Contrast', style: TextStyle(fontSize: t.bodySize, color: t.ink)),
-          const SizedBox(height: 6),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'normal', label: Text('Normal')),
-              ButtonSegment(value: 'high',   label: Text('High')),
-            ],
-            selected: {s.contrast},
-            onSelectionChanged: (v) => setState(() { s.contrast = v.first; AppTheme().setContrast(v.first); }),
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith(
-                (st) => st.contains(WidgetState.selected) ? t.accent : t.surface),
-              foregroundColor: WidgetStateProperty.resolveWith(
-                (st) => st.contains(WidgetState.selected) ? Colors.white : t.ink),
+          // ── NTFY ─────────────────────────────────────────────
+          _sectionHeader('Notifikacije', t),
+          _textField('Primary URL', _primaryUrlCtrl, t),
+          _textField('Fallback URL', _fallbackUrlCtrl, t),
+          _textField('Token', _tokenCtrl, t, obscure: true),
+
+          const SizedBox(height: 16),
+
+          // ── DISPLAY ───────────────────────────────────────────
+          _sectionHeader('Display', t),
+
+          // Font size
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(child: Text('Font size',
+                    style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+                DropdownButton<String>(
+                  value: s.fontSize,
+                  items: ['small', 'medium', 'large'].map((v) => DropdownMenuItem(
+                    value: v,
+                    child: Text(v, style: TextStyle(fontSize: t.bodySize, color: t.ink)),
+                  )).toList(),
+                  onChanged: (v) => setState(() => s.fontSize = v!),
+                ),
+              ],
+            ),
+          ),
+
+          // Contrast
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(child: Text('Contrast',
+                    style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+                DropdownButton<String>(
+                  value: s.contrast,
+                  items: ['normal', 'high'].map((v) => DropdownMenuItem(
+                    value: v,
+                    child: Text(v, style: TextStyle(fontSize: t.bodySize, color: t.ink)),
+                  )).toList(),
+                  onChanged: (v) => setState(() => s.contrast = v!),
+                ),
+              ],
             ),
           ),
 
           const SizedBox(height: 32),
+          Text('Senso v1.0.0  |  com.fladroid.senso',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _field(String label, TextEditingController ctrl, {bool obscure = false}) {
-    final t = AppTheme();
-    return TextField(
-      controller: ctrl,
-      obscureText: obscure,
-      style: TextStyle(fontSize: t.bodySize, color: t.ink),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(fontSize: t.captionSize, color: t.inkLight),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: t.accent, width: 2)),
-        filled: true,
-        fillColor: t.surface,
+  Widget _sectionHeader(String title, AppTheme t) => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 4),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+            style: TextStyle(fontSize: t.bodySize, fontWeight: FontWeight.bold,
+                color: t.accent)),
+        Divider(color: t.border, height: 8),
+      ],
+    ),
+  );
+
+  Widget _sensorSwitch({
+    required String label,
+    required bool available,
+    required bool value,
+    required Function(bool) onChanged,
+    required AppTheme t,
+  }) =>
+    SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(label,
+          style: TextStyle(fontSize: t.bodySize,
+              color: available ? t.ink : t.inkFaint)),
+      subtitle: available
+          ? null
+          : Text('Not available on this device',
+              style: TextStyle(fontSize: t.captionSize, color: t.inkFaint,
+                  fontStyle: FontStyle.italic)),
+      value: available && value,
+      onChanged: available ? onChanged : null,
+    );
+
+  Widget _sliderRow({
+    required String label,
+    required double value,
+    required String unit,
+    required double min,
+    required double max,
+    required Function(double) onChanged,
+    required AppTheme t,
+  }) =>
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(child: Text(label,
+                style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+            Text('${value.toStringAsFixed(1)} $unit',
+                style: TextStyle(fontSize: t.bodySize,
+                    color: t.accent, fontWeight: FontWeight.bold)),
+          ]),
+          Slider(
+            value: value, min: min, max: max,
+            activeColor: t.accent,
+            inactiveColor: t.border,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
-  }
+
+  Widget _textField(String label, TextEditingController ctrl, AppTheme t,
+      {bool obscure = false}) =>
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextField(
+        controller: ctrl,
+        obscureText: obscure,
+        style: TextStyle(fontSize: t.bodySize, color: t.ink),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(fontSize: t.captionSize, color: t.inkMedium),
+          enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: t.border)),
+          focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: t.accent)),
+          isDense: true,
+        ),
+      ),
+    );
 }

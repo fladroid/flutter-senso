@@ -2,91 +2,108 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:sensors_plus/sensors_plus.dart';
+import '../models/app_settings.dart';
 
-/// Provjerava dostupnost senzora na uređaju pri startu.
-class SensorAvailability {
-  bool accelerometer = false;
-  bool gyroscope     = false;
-  bool stepDetector  = false;
-  bool stationary    = false;
+enum SensoState { idle, monitoring, trigger, alarm }
 
-  static Future<SensorAvailability> check() async {
-    final result = SensorAvailability();
+class SensorEvent {
+  final DateTime timestamp;
+  final String   message;
+  final bool     isAlarm;
+  SensorEvent({required this.timestamp, required this.message, this.isAlarm = false});
+}
+
+class SensorService {
+  final AppSettings settings;
+
+  SensoState _state = SensoState.idle;
+  SensoState get state => _state;
+
+  final _stateController = StreamController<SensoState>.broadcast();
+  Stream<SensoState> get stateStream => _stateController.stream;
+
+  final _eventController = StreamController<SensorEvent>.broadcast();
+  Stream<SensorEvent> get eventStream => _eventController.stream;
+
+  // Live sensor readings (za SensorScreen)
+  double accelMagnitude = 0.0;
+  double gyroMagnitude  = 0.0;
+  bool   stepActive     = false;
+
+  final _readingController = StreamController<void>.broadcast();
+  Stream<void> get readingStream => _readingController.stream;
+
+  StreamSubscription? _accelSub;
+  StreamSubscription? _gyroSub;
+  StreamSubscription? _stepSub;
+
+  Timer? _cooldownTimer;
+  Timer? _responseTimer;
+  bool   _inCooldown = false;
+
+  // Callback za response dialog
+  Function()? onTrigger;
+
+  SensorService({required this.settings});
+
+  // Provjera dostupnosti senzora
+  static Future<Map<String, bool>> checkAvailability() async {
+    final result = <String, bool>{
+      'accel':      false,
+      'gyro':       false,
+      'step':       false,
+      'stationary': false,
+    };
 
     // Accelerometer
     try {
       final sub = accelerometerEventStream().listen((_) {});
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 200));
       await sub.cancel();
-      result.accelerometer = true;
+      result['accel'] = true;
     } catch (_) {}
 
     // Gyroscope
     try {
       final sub = gyroscopeEventStream().listen((_) {});
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 200));
       await sub.cancel();
-      result.gyroscope = true;
+      result['gyro'] = true;
     } catch (_) {}
 
-    // Step detector — sensors_plus nema direktan stream, koristimo userAccelerometer kao proxy
-    // Step detector se čita kroz userAccelerometerEventStream — dostupan na SA55
+    // Step detector
     try {
-      final sub = userAccelerometerEventStream().listen((_) {});
-      await Future.delayed(const Duration(milliseconds: 300));
-      await sub.cancel();
-      result.stepDetector = true;
+      // sensors_plus nema direktan step stream — koristimo userAccelerometer kao proxy
+      // Pravi step_detector dostupan kroz platform channel; za sada označi kao available
+      // ako accelerometer radi (sve Samsung uređaje imaju step detector)
+      result['step'] = result['accel']!;
     } catch (_) {}
 
-    // stationary_detect — nema direktan sensors_plus stream; pokušaj fallback
-    // Na SA55 i S7+ nije dostupan kroz sensors_plus — greyed out by default
-    result.stationary = false;
+    // Stationary detect — samo SA9+
+    // sensors_plus nema direktan pristup; detektujemo indirektno
+    // Označi kao false — override ručno ako pronađemo
+    result['stationary'] = false;
 
     return result;
   }
-}
-
-/// Glavni service za monitoring senzora i detekciju pada.
-class SensorService {
-  final void Function(double accel, double gyro) onSensorUpdate;
-  final void Function() onFallDetected;
-
-  final double fallThreshold;
-  final double rotationThreshold;
-  final bool useGyro;
-  final bool useStep;
-
-  StreamSubscription? _accelSub;
-  StreamSubscription? _gyroSub;
-
-  double _lastAccelMag = 0;
-  double _lastGyroMag  = 0;
-  bool   _inCooldown   = false;
-  bool   _stepActive   = false;
-
-  SensorService({
-    required this.onSensorUpdate,
-    required this.onFallDetected,
-    required this.fallThreshold,
-    required this.rotationThreshold,
-    required this.useGyro,
-    required this.useStep,
-  });
 
   void start() {
-    _accelSub = userAccelerometerEventStream(
-      samplingPeriod: const Duration(milliseconds: 50),
-    ).listen((e) {
-      _lastAccelMag = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
-      onSensorUpdate(_lastAccelMag, _lastGyroMag);
-      _checkFall();
-    });
+    if (_state != SensoState.idle) return;
+    _setState(SensoState.monitoring);
+    _log('Monitoring started 🟢');
 
-    if (useGyro) {
-      _gyroSub = gyroscopeEventStream(
-        samplingPeriod: const Duration(milliseconds: 50),
-      ).listen((e) {
-        _lastGyroMag = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+    if (settings.accelEnabled && settings.accelAvailable) {
+      _accelSub = userAccelerometerEventStream().listen((e) {
+        accelMagnitude = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+        _readingController.add(null);
+        _checkFall();
+      });
+    }
+
+    if (settings.gyroEnabled && settings.gyroAvailable) {
+      _gyroSub = gyroscopeEventStream().listen((e) {
+        gyroMagnitude = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+        _readingController.add(null);
       });
     }
   }
@@ -94,32 +111,79 @@ class SensorService {
   void stop() {
     _accelSub?.cancel();
     _gyroSub?.cancel();
-    _accelSub = null;
-    _gyroSub  = null;
+    _stepSub?.cancel();
+    _cooldownTimer?.cancel();
+    _responseTimer?.cancel();
+    _setState(SensoState.idle);
+    _log('Monitoring stopped ⏹');
   }
 
-  void setStepActive(bool active) => _stepActive = active;
-
   void _checkFall() {
+    if (_state != SensoState.monitoring) return;
     if (_inCooldown) return;
-    // Filter: ako su koraci aktivni, manja šansa pada
-    if (useStep && _stepActive) return;
 
-    final accelTrigger = _lastAccelMag > fallThreshold;
-    final gyroTrigger  = !useGyro || _lastGyroMag > rotationThreshold;
+    final accelTrigger = settings.accelEnabled && settings.accelAvailable &&
+        accelMagnitude > settings.fallThreshold;
+    final gyroTrigger  = settings.gyroEnabled  && settings.gyroAvailable  &&
+        gyroMagnitude  > settings.rotationThreshold;
 
-    if (accelTrigger && gyroTrigger) {
-      _inCooldown = true;
-      onFallDetected();
+    if (accelTrigger || gyroTrigger) {
+      _trigger();
     }
   }
 
-  void resetCooldown(int cooldownSeconds) {
-    Future.delayed(Duration(seconds: cooldownSeconds), () {
-      _inCooldown = false;
+  void _trigger() {
+    _setState(SensoState.trigger);
+    _log('⚠️ Trigger — accel: ${accelMagnitude.toStringAsFixed(2)} m/s²');
+    onTrigger?.call();
+
+    _responseTimer = Timer(Duration(seconds: settings.responseWindow), () {
+      if (_state == SensoState.trigger) {
+        triggerAlarm();
+      }
     });
   }
 
-  double get accelMag => _lastAccelMag;
-  double get gyroMag  => _lastGyroMag;
+  void confirmOk() {
+    if (_state != SensoState.trigger) return;
+    _responseTimer?.cancel();
+    _log('✅ Korisnik potvrdio — OK');
+    _setState(SensoState.monitoring);
+    _startCooldown();
+  }
+
+  void triggerAlarm() {
+    _setState(SensoState.alarm);
+    _log('🆘 ALARM — pad detektovan!', isAlarm: true);
+    _startCooldown();
+    // ntfy šalje NtfyService (poziva se iz HomeScreen)
+  }
+
+  void _startCooldown() {
+    _inCooldown = true;
+    _cooldownTimer = Timer(Duration(seconds: settings.cooldownSeconds), () {
+      _inCooldown = false;
+      if (_state == SensoState.alarm) _setState(SensoState.monitoring);
+    });
+  }
+
+  void _setState(SensoState s) {
+    _state = s;
+    _stateController.add(s);
+  }
+
+  void _log(String msg, {bool isAlarm = false}) {
+    _eventController.add(SensorEvent(
+      timestamp: DateTime.now(),
+      message: msg,
+      isAlarm: isAlarm,
+    ));
+  }
+
+  void dispose() {
+    stop();
+    _stateController.close();
+    _eventController.close();
+    _readingController.close();
+  }
 }
