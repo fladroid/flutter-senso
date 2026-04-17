@@ -1,5 +1,6 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
+import '../main.dart' show themeNotifier;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_settings.dart';
 import '../services/app_theme.dart';
@@ -40,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await widget.settings.save();
     AppTheme().init(widget.settings.fontSize, widget.settings.contrast);
     TranslationService().setLanguage(widget.settings.language);
+    themeNotifier.value++; // triggera rebuild MaterialApp teme
     if (mounted) Navigator.pop(context);
   }
 
@@ -143,6 +145,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               min: 1.0, max: 10.0,
               onChanged: (v) => setState(() =>
                   s.rotationThreshold = double.parse(v.toStringAsFixed(1))),
+            ),
+
+            // Cooldown
+            _row(
+              child: Row(children: [
+                Expanded(child: Text(_tr.t('cooldown'),
+                    style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+                DropdownButton<int>(
+                  value: s.cooldownSeconds,
+                  underline: const SizedBox(),
+                  style: TextStyle(fontSize: t.bodySize, color: t.ink),
+                  items: [3, 5, 10, 30, 60].map((v) => DropdownMenuItem(
+                    value: v,
+                    child: Text('\${v}s'),
+                  )).toList(),
+                  onChanged: (v) => setState(() => s.cooldownSeconds = v!),
+                ),
+              ]),
             ),
 
             _divider(),
@@ -252,7 +272,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             const SizedBox(height: 16),
-            Text('Senso v1.0.9  |  com.fladroid.senso',
+            Text('Senso v1.1.0  |  com.fladroid.senso',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             const SizedBox(height: 16),

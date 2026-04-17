@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: t.background,
       appBar: AppBar(
         backgroundColor: t.background,
-        title: Text('${_tr.t("app_title")} v1.0.9',
+        title: Text('${_tr.t("app_title")} v1.1.0',
             style: TextStyle(fontSize: t.headerSize,
                 fontWeight: FontWeight.bold, color: t.ink)),
         actions: [

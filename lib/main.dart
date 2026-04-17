@@ -6,6 +6,9 @@ import 'services/sensor_service.dart';
 import 'services/translation_service.dart';
 import 'screens/home_screen.dart';
 
+// Globalni notifier za rebuild teme
+final themeNotifier = ValueNotifier<int>(0);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -30,34 +33,40 @@ class SensoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppTheme();
-    return MaterialApp(
-      title: 'Senso',
-      debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.light,
-      theme: ThemeData(
-        scaffoldBackgroundColor: t.background,
-        colorScheme: ColorScheme.light(
-          primary: t.accent, secondary: t.accent, surface: t.surface,
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: t.background,
-          foregroundColor: t.ink,
-          elevation: 0,
-        ),
-        switchTheme: SwitchThemeData(
-          thumbColor: WidgetStateProperty.resolveWith(
-              (s) => s.contains(WidgetState.selected) ? t.accent : t.inkFaint),
-          trackColor: WidgetStateProperty.resolveWith(
-              (s) => s.contains(WidgetState.selected)
-                  ? t.accent.withAlpha(80) : t.border),
-        ),
-        textTheme: TextTheme(
-          bodyMedium: TextStyle(color: t.ink,       fontSize: t.bodySize),
-          bodySmall:  TextStyle(color: t.inkMedium, fontSize: t.captionSize),
-        ),
-      ),
-      home: HomeScreen(settings: settings),
+    return ValueListenableBuilder<int>(
+      valueListenable: themeNotifier,
+      builder: (_, __, ___) {
+        final t = AppTheme();
+        return MaterialApp(
+          title: 'Senso',
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeMode.light,
+          theme: ThemeData(
+            scaffoldBackgroundColor: t.background,
+            colorScheme: ColorScheme.light(
+              primary: t.accent, secondary: t.accent, surface: t.surface,
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: t.background,
+              foregroundColor: t.ink,
+              elevation: 0,
+            ),
+            switchTheme: SwitchThemeData(
+              thumbColor: WidgetStateProperty.resolveWith(
+                  (s) => s.contains(WidgetState.selected)
+                      ? t.accent : t.inkFaint),
+              trackColor: WidgetStateProperty.resolveWith(
+                  (s) => s.contains(WidgetState.selected)
+                      ? t.accent.withAlpha(80) : t.border),
+            ),
+            textTheme: TextTheme(
+              bodyMedium: TextStyle(color: t.ink,       fontSize: t.bodySize),
+              bodySmall:  TextStyle(color: t.inkMedium, fontSize: t.captionSize),
+            ),
+          ),
+          home: HomeScreen(settings: settings),
+        );
+      },
     );
   }
 }
