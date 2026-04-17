@@ -27,21 +27,29 @@ class SensorService {
   Stream<SensorEvent> get eventStream => _eventController.stream;
   Stream<void> get readingStream      => _readingController.stream;
 
+  // Live vrijednosti
   double accelMagnitude = 0.0;
   double gyroMagnitude  = 0.0;
   bool   stepActive     = false;
 
+  // Vrijednosti pri triggeru — za dialog
+  double triggerAccel = 0.0;
+  double triggerGyro  = 0.0;
+
   StreamSubscription? _accelSub;
   StreamSubscription? _gyroSub;
-  StreamSubscription? _stepSub;
   Timer? _cooldownTimer;
   Timer? _responseTimer;
   Timer? _pollingTimer;
   bool   _inCooldown = false;
 
-  // Buffered readings između polling intervala
+  // Buffer max između polling intervala
   double _accelBuf = 0.0;
   double _gyroBuf  = 0.0;
+
+  // Step detector — varijancom: pamtimo zadnjih N vrijednosti
+  final List<double> _accelHistory = [];
+  static const int _historySize = 10;
 
   Function()? onTrigger;
 
@@ -69,10 +77,7 @@ class SensorService {
       result['gyro'] = true;
     } catch (_) {}
 
-    // Step detector — dostupan ako accelerometer radi (svi Samsung uređaji)
-    result['step'] = result['accel']!;
-
-    // Stationary detect — sensors_plus nema direktan stream, ostaje false
+    result['step']       = result['accel']!;
     result['stationary'] = false;
 
     return result;
@@ -85,15 +90,18 @@ class SensorService {
 
     final interval = Duration(milliseconds: settings.pollingIntervalMs);
 
-    // Accelerometer — buffer max vrijednost
+    // Accelerometer — buffer max + history za step detection
     if (settings.accelEnabled && settings.accelAvailable) {
       _accelSub = userAccelerometerEventStream().listen((e) {
         final m = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
         if (m > _accelBuf) _accelBuf = m;
+        // History za step detection
+        _accelHistory.add(m);
+        if (_accelHistory.length > _historySize) _accelHistory.removeAt(0);
       });
     }
 
-    // Gyroscope — buffer max vrijednost
+    // Gyroscope
     if (settings.gyroEnabled && settings.gyroAvailable) {
       _gyroSub = gyroscopeEventStream().listen((e) {
         final m = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
@@ -101,21 +109,25 @@ class SensorService {
       });
     }
 
-    // Step detector
-    if (settings.stepEnabled && settings.stepAvailable) {
-      _stepSub = accelerometerEventStream().listen((e) {
-        // Koristimo akcelerometar za procjenu koraka — magnitude > 1.2 = hoda
-        final m = sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
-        stepActive = m > 1.2 && m < 3.0;
-      });
-    }
-
-    // Polling timer — provjera thresholda na svakih N ms
+    // Polling timer
     _pollingTimer = Timer.periodic(interval, (_) {
       accelMagnitude = _accelBuf;
       gyroMagnitude  = _gyroBuf;
       _accelBuf = 0.0;
       _gyroBuf  = 0.0;
+
+      // Step detection — varijancom magnitude
+      // Hod = ritmične oscilacije = visoka varijanca u kratkom periodu (0.3-2.5 m/s²)
+      if (settings.stepEnabled && settings.stepAvailable && _accelHistory.length >= 5) {
+        final avg = _accelHistory.reduce((a, b) => a + b) / _accelHistory.length;
+        final variance = _accelHistory.map((v) => (v - avg) * (v - avg))
+            .reduce((a, b) => a + b) / _accelHistory.length;
+        // Hod: varijanca 0.1-2.0, prosječna magnitude 0.3-2.5
+        stepActive = variance > 0.1 && variance < 2.0 && avg > 0.3 && avg < 2.5;
+      } else {
+        stepActive = false;
+      }
+
       _readingController.add(null);
       _checkFall();
     });
@@ -124,13 +136,13 @@ class SensorService {
   void stop() {
     _accelSub?.cancel();
     _gyroSub?.cancel();
-    _stepSub?.cancel();
     _pollingTimer?.cancel();
     _cooldownTimer?.cancel();
     _responseTimer?.cancel();
     accelMagnitude = 0.0;
     gyroMagnitude  = 0.0;
     stepActive     = false;
+    _accelHistory.clear();
     _setState(SensoState.idle);
     _log('Monitoring stopped ⏹');
   }
@@ -144,7 +156,7 @@ class SensorService {
     final gyroTrigger  = settings.gyroEnabled  && settings.gyroAvailable  &&
         gyroMagnitude  > settings.rotationThreshold;
 
-    // Step filter — ako hoda, nije pad (ako je step sensor aktivan i uključen)
+    // Step filter
     if (settings.stepEnabled && settings.stepAvailable && stepActive) return;
 
     if (accelTrigger || gyroTrigger) {
@@ -153,8 +165,12 @@ class SensorService {
   }
 
   void _trigger() {
+    // Sačuvaj vrijednosti pri triggeru za dialog
+    triggerAccel = accelMagnitude;
+    triggerGyro  = gyroMagnitude;
+
     _setState(SensoState.trigger);
-    _log('⚠️ Trigger — ${accelMagnitude.toStringAsFixed(2)} m/s² / ${gyroMagnitude.toStringAsFixed(2)} rad/s');
+    _log('⚠️ Trigger — ${triggerAccel.toStringAsFixed(2)} m/s² / ${triggerGyro.toStringAsFixed(2)} rad/s');
     onTrigger?.call();
 
     _responseTimer = Timer(Duration(seconds: settings.responseWindow), () {

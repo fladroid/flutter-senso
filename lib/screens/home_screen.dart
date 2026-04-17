@@ -92,7 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Pad detektovan!\nJesi li dobro?',
+                Text(
+                    'Pad detektovan!\nJesi li dobro?\n\n'
+                    'Akcel: \${_sensor.triggerAccel.toStringAsFixed(2)} m/s\u00B2\n'
+                    'Gyro:  \${_sensor.triggerGyro.toStringAsFixed(2)} rad/s',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: t.bodySize + 2)),
                 const SizedBox(height: 16),
@@ -158,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: t.background,
       appBar: AppBar(
         backgroundColor: t.background,
-        title: Text('📡  Senso v1.0.1',
+        title: Text('📡  Senso v1.0.2',
             style: TextStyle(fontSize: t.headerSize,
                 fontWeight: FontWeight.bold, color: t.ink)),
         actions: [
