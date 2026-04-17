@@ -43,7 +43,7 @@ class AppSettings {
     fallThreshold     = p.getDouble('fall_threshold')          ?? 2.5;
     rotationThreshold = p.getDouble('rotation_threshold')      ?? 3.0;
     responseWindow    = p.getInt('response_window')            ?? 5;
-    cooldownSeconds   = p.getInt('cooldown_seconds')           ?? 30;
+    cooldownSeconds   = p.getInt('cooldown_seconds')           ?? 5;
     ntfyPrimaryUrl    = p.getString('ntfy_primary_url')  ?? 'https://ntfy-balsam.dynu.net/senso_guard';
     ntfyFallbackUrl   = p.getString('ntfy_fallback_url') ?? 'https://ntfy.sh/senso_guard';
     ntfyToken         = p.getString('ntfy_token')        ?? '';

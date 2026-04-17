@@ -1,5 +1,6 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_settings.dart';
 import '../services/app_theme.dart';
 import '../services/translation_service.dart';
@@ -228,8 +229,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ])),
 
-            const SizedBox(height: 32),
-            Text('Senso v1.0.8  |  com.fladroid.senso',
+            const SizedBox(height: 24),
+
+            // Reset na defaulte
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.restore, size: 16),
+                label: Text(_tr.t('reset_defaults'),
+                    style: TextStyle(fontSize: t.captionSize)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: t.destructive,
+                  side: BorderSide(color: t.destructive.withAlpha(120)),
+                ),
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            Text('Senso v1.0.9  |  com.fladroid.senso',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             const SizedBox(height: 16),

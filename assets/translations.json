@@ -59,7 +59,8 @@
         "polling_interval": "Polling interval",
         "sensor_step_active": "active",
         "sensor_step_idle": "idle",
-        "step_count": "Steps"
+        "step_count": "Steps",
+        "reset_defaults": "Reset to defaults"
     },
     "de": {
         "app_title": "Senso",
@@ -121,7 +122,8 @@
         "polling_interval": "Abfrageintervall",
         "sensor_step_active": "aktiv",
         "sensor_step_idle": "ruhend",
-        "step_count": "Schritte"
+        "step_count": "Schritte",
+        "reset_defaults": "Auf Standard zurücksetzen"
     },
     "hr": {
         "app_title": "Senso",
@@ -183,7 +185,8 @@
         "polling_interval": "Interval provjere",
         "sensor_step_active": "aktivan",
         "sensor_step_idle": "miruje",
-        "step_count": "Koraci"
+        "step_count": "Koraci",
+        "reset_defaults": "Resetiraj na zadano"
     },
     "sr_lat": {
         "app_title": "Senso",
@@ -245,7 +248,8 @@
         "polling_interval": "Interval provjere",
         "sensor_step_active": "aktivan",
         "sensor_step_idle": "miruje",
-        "step_count": "Koraci"
+        "step_count": "Koraci",
+        "reset_defaults": "Resetuj na podrazumevano"
     },
     "sr_cyr": {
         "app_title": "Сенсо",
@@ -307,6 +311,7 @@
         "polling_interval": "Интервал провере",
         "sensor_step_active": "активан",
         "sensor_step_idle": "мирује",
-        "step_count": "Кораци"
+        "step_count": "Кораци",
+        "reset_defaults": "Ресетуј на подразумевано"
     }
 }
