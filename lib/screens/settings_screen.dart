@@ -113,7 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _slider(
               label: _tr.t('fall_threshold'),
               value: s.fallThreshold, unit: 'm/s²',
-              min: 1.0, max: 5.0,
+              min: 1.0, max: 15.0,
               onChanged: (v) => setState(() =>
                   s.fallThreshold = double.parse(v.toStringAsFixed(1))),
             ),
@@ -180,9 +180,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 underline: const SizedBox(),
                 style: TextStyle(fontSize: t.bodySize, color: t.ink),
                 items: [
-                  DropdownMenuItem(value: 'small',  child: Text(_tr.t('font_small'))),
-                  DropdownMenuItem(value: 'medium', child: Text(_tr.t('font_medium'))),
-                  DropdownMenuItem(value: 'large',  child: Text(_tr.t('font_large'))),
+                  DropdownMenuItem(value: 'malo',  child: Text(_tr.t('font_small'))),
+                  DropdownMenuItem(value: 'srednje', child: Text(_tr.t('font_medium'))),
+                  DropdownMenuItem(value: 'veliko',  child: Text(_tr.t('font_large'))),
                 ],
                 onChanged: (v) => setState(() {
                   s.fontSize = v!;
@@ -200,8 +200,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 underline: const SizedBox(),
                 style: TextStyle(fontSize: t.bodySize, color: t.ink),
                 items: [
-                  DropdownMenuItem(value: 'normal', child: Text(_tr.t('contrast_normal'))),
-                  DropdownMenuItem(value: 'high',   child: Text(_tr.t('contrast_high'))),
+                  DropdownMenuItem(value: 'normalno', child: Text(_tr.t('contrast_normal'))),
+                  DropdownMenuItem(value: 'visoki',   child: Text(_tr.t('contrast_high'))),
                 ],
                 onChanged: (v) => setState(() {
                   s.contrast = v!;
@@ -211,7 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ])),
 
             const SizedBox(height: 32),
-            Text('Senso v1.0.2  |  com.fladroid.senso',
+            Text('Senso v1.0.3  |  com.fladroid.senso',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             const SizedBox(height: 16),

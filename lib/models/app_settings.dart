@@ -32,7 +32,7 @@ class AppSettings {
   // Display
   String fontSize = 'medium';
   String contrast = 'normal';
-  String language = 'en';
+  String language = 'hr';
 
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
@@ -50,7 +50,7 @@ class AppSettings {
     testMode          = p.getBool('test_mode')           ?? false;
     fontSize          = p.getString('font_size')         ?? 'medium';
     contrast          = p.getString('contrast')          ?? 'normal';
-    language          = p.getString('language')          ?? 'en';
+    language          = p.getString('language')          ?? 'hr';
   }
 
   Future<void> save() async {

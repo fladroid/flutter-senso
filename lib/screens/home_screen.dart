@@ -6,6 +6,7 @@ import '../services/app_theme.dart';
 import '../services/sensor_service.dart';
 import '../services/ntfy_service.dart';
 import 'settings_screen.dart';
+import '../services/translation_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -18,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late SensorService _sensor;
   late NtfyService   _ntfy;
+  final _tr = TranslationService();
 
   final List<SensorEvent> _events = [];
   StreamSubscription? _stateSub;
@@ -93,9 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                    'Pad detektovan!\nJesi li dobro?\n\n'
-                    'Akcel: \${_sensor.triggerAccel.toStringAsFixed(2)} m/s\u00B2\n'
-                    'Gyro:  \${_sensor.triggerGyro.toStringAsFixed(2)} rad/s',
+                    '${_tr.t("trigger_body")}\n\n'
+                    'Akcel: ${_sensor.triggerAccel.toStringAsFixed(2)} m/s²\n'
+                    'Gyro:  ${_sensor.triggerGyro.toStringAsFixed(2)} rad/s',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: t.bodySize + 2)),
                 const SizedBox(height: 16),
@@ -161,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: t.background,
       appBar: AppBar(
         backgroundColor: t.background,
-        title: Text('📡  Senso v1.0.2',
+        title: Text('📡  Senso v1.0.3',
             style: TextStyle(fontSize: t.headerSize,
                 fontWeight: FontWeight.bold, color: t.ink)),
         actions: [
