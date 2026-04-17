@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final t = AppTheme();
           return AlertDialog(
             backgroundColor: const Color(0xFFFFF3CD),
-            title: Text('⚠️ Senso',
+            title: Text(_tr.t('trigger_title'),
                 style: TextStyle(fontSize: t.headerSize, fontWeight: FontWeight.bold)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -101,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: t.bodySize + 2)),
                 const SizedBox(height: 16),
-                Text('Alarm za: ${remaining}s',
+                Text(_tr.t('trigger_alarm_in', params: {'s': remaining.toString()}),
                     style: TextStyle(fontSize: t.captionSize, color: t.inkMedium)),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _ntfy.sendOk();
                     _dialogShown = false;
                   },
-                  child: Text('DA, U REDU SAM',
+                  child: Text(_tr.t('trigger_ok'),
                       style: TextStyle(fontSize: t.bodySize + 1,
                           fontWeight: FontWeight.bold)),
                 ),
@@ -147,10 +147,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String get _stateLabel {
     switch (_sensor.state) {
-      case SensoState.idle:       return 'IDLE';
-      case SensoState.monitoring: return 'MONITORING';
-      case SensoState.trigger:    return 'TRIGGER ⚠️';
-      case SensoState.alarm:      return 'ALARM 🆘';
+      case SensoState.idle:       return _tr.t('state_idle');
+      case SensoState.monitoring: return _tr.t('state_monitoring');
+      case SensoState.trigger:    return '${_tr.t("state_trigger")} ⚠️';
+      case SensoState.alarm:      return '${_tr.t("state_alarm")} 🆘';
     }
   }
 
@@ -163,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: t.background,
       appBar: AppBar(
         backgroundColor: t.background,
-        title: Text('📡  Senso v1.0.3',
+        title: Text(_tr.t('app_title') + ' v1.0.3',
             style: TextStyle(fontSize: t.headerSize,
                 fontWeight: FontWeight.bold, color: t.ink)),
         actions: [
@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: _toggle,
-                      child: Text(isMonitoring ? 'STOP' : 'START',
+                      child: Text(isMonitoring ? _tr.t('btn_stop') : _tr.t('btn_start'),
                           style: TextStyle(fontSize: t.bodySize + 2,
                               fontWeight: FontWeight.bold)),
                     ),
@@ -232,10 +232,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _reading('Akcelerometar',
+                  _reading(_tr.t('sensor_accel'),
                       '${_sensor.accelMagnitude.toStringAsFixed(2)} m/s²',
                       widget.settings.accelEnabled && widget.settings.accelAvailable),
-                  _reading('Gyroscope',
+                  _reading(_tr.t('sensor_gyro'),
                       '${_sensor.gyroMagnitude.toStringAsFixed(2)} rad/s',
                       widget.settings.gyroEnabled && widget.settings.gyroAvailable),
                   _reading('Step detector',
@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Event log header
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('─── Zadnji događaji ───',
+              child: Text(_tr.t('last_events'),
                   style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             ),
             const SizedBox(height: 8),

@@ -15,8 +15,8 @@ class AppSettings {
   bool stationaryEnabled = true;
 
   // Detekcija
-  double fallThreshold     = 6.0;
-  double rotationThreshold = 3.0;
+  double fallThreshold     = 20.0;
+  double rotationThreshold = 5.0;
   int    responseWindow    = 5;
   int    cooldownSeconds   = 30;
   int    pollingIntervalMs = 200; // ms: 100, 200, 500, 1000
