@@ -18,7 +18,7 @@ class AppSettings {
   double fallThreshold     = 20.0;
   double rotationThreshold = 5.0;
   int    responseWindow    = 5;
-  int    cooldownSeconds   = 30;
+  int    cooldownSeconds   = 5;
   int    pollingIntervalMs = 200; // ms: 100, 200, 500, 1000
 
   // ntfy

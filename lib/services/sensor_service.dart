@@ -197,6 +197,7 @@ class SensorService {
     _cooldownTimer = Timer(Duration(seconds: settings.cooldownSeconds), () {
       _inCooldown = false;
       if (_state == SensoState.alarm) _setState(SensoState.monitoring);
+      // _inCooldown je false bez obzira na state
     });
   }
 
