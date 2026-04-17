@@ -203,7 +203,7 @@ class SensorService {
     _responseTimer?.cancel();
     _log(_tr.t('log_user_ok'));
     _setState(SensoState.monitoring);
-    _startCooldown();
+    // Nema cooldowna nakon OK — korisnik je svjesno potvrdio, monitoring nastavlja odmah
   }
 
   void triggerAlarm() {

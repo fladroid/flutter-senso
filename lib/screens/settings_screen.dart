@@ -158,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(fontSize: t.bodySize, color: t.ink),
                   items: [3, 5, 10, 30, 60].map((v) => DropdownMenuItem(
                     value: v,
-                    child: Text('\${v}s'),
+                    child: Text('${v}s'),
                   )).toList(),
                   onChanged: (v) => setState(() => s.cooldownSeconds = v!),
                 ),
@@ -272,7 +272,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             const SizedBox(height: 16),
-            Text('Senso v1.1.0  |  com.fladroid.senso',
+            Text('Senso v1.1.1  |  com.fladroid.senso',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             const SizedBox(height: 16),
