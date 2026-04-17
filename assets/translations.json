@@ -55,7 +55,8 @@
         "ntfy_stop_body": "Monitoring stopped.",
         "cooldown": "Cooldown",
         "log_step_active": "🚶 Step detector — active",
-        "log_step_idle": "🧍 Step detector — idle"
+        "log_step_idle": "🧍 Step detector — idle",
+        "polling_interval": "Polling interval"
     },
     "de": {
         "app_title": "Senso",
@@ -113,7 +114,8 @@
         "ntfy_stop_body": "Überwachung gestoppt.",
         "cooldown": "Abkühlzeit",
         "log_step_active": "🚶 Schrittsensor — aktiv",
-        "log_step_idle": "🧍 Schrittsensor — ruhend"
+        "log_step_idle": "🧍 Schrittsensor — ruhend",
+        "polling_interval": "Abfrageintervall"
     },
     "hr": {
         "app_title": "Senso",
@@ -171,7 +173,8 @@
         "ntfy_stop_body": "Praćenje zaustavljeno.",
         "cooldown": "Pauza između alarma",
         "log_step_active": "🚶 Detektor koraka — aktivan",
-        "log_step_idle": "🧍 Detektor koraka — miruje"
+        "log_step_idle": "🧍 Detektor koraka — miruje",
+        "polling_interval": "Interval provjere"
     },
     "sr_lat": {
         "app_title": "Senso",
@@ -229,7 +232,8 @@
         "ntfy_stop_body": "Praćenje zaustavljeno.",
         "cooldown": "Pauza između alarma",
         "log_step_active": "🚶 Detektor koraka — aktivan",
-        "log_step_idle": "🧍 Detektor koraka — miruje"
+        "log_step_idle": "🧍 Detektor koraka — miruje",
+        "polling_interval": "Interval provjere"
     },
     "sr_cyr": {
         "app_title": "Сенсо",
@@ -287,6 +291,7 @@
         "ntfy_stop_body": "Праћење заустављено.",
         "cooldown": "Пауза између аларма",
         "log_step_active": "🚶 Детектор корака — активан",
-        "log_step_idle": "🧍 Детектор корака — мирује"
+        "log_step_idle": "🧍 Детектор корака — мирује",
+        "polling_interval": "Интервал провере"
     }
 }

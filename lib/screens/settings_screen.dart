@@ -92,6 +92,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // ── DETEKCIJA ─────────────────────────────────
             _section(_tr.t('section_detection')),
 
+            // Polling interval
+            _row(
+              child: Row(children: [
+                Expanded(child: Text(_tr.t('polling_interval'),
+                    style: TextStyle(fontSize: t.bodySize, color: t.ink))),
+                DropdownButton<int>(
+                  value: s.pollingIntervalMs,
+                  underline: const SizedBox(),
+                  style: TextStyle(fontSize: t.bodySize, color: t.ink),
+                  items: [100, 200, 500, 1000].map((v) => DropdownMenuItem(
+                    value: v,
+                    child: Text(v < 1000 ? '${v}ms' : '1s'),
+                  )).toList(),
+                  onChanged: (v) => setState(() => s.pollingIntervalMs = v!),
+                ),
+              ]),
+            ),
+
             // Response window
             _row(
               child: Row(children: [
@@ -211,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ])),
 
             const SizedBox(height: 32),
-            Text('Senso v1.0.6  |  com.fladroid.senso',
+            Text('Senso v1.0.7  |  com.fladroid.senso',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: t.captionSize, color: t.inkFaint)),
             const SizedBox(height: 16),
